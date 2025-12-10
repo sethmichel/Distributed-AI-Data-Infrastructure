@@ -1,9 +1,15 @@
 **DAG engine**
-- Directed acyclic graph. A system that does tasks in a dependency graph where:
+- Directed acyclic graph. 
+    - directed: things go in 1 direction
+    - acyclic: no loops allowed (you can't go back to the start)
+    - graph: network of nodes and edges
+- A system that does tasks in a dependency graph where:
     - Each node = a computation step
     - Edges = dependencies
     - No cycles allowed
 - In ml, dag's are used to handle transformations, track stuff, guarantee ordering, parallel execution...
+- ex)
+    - cooking recipe: chop onions, heat pan, saute onions (depends on steps a and b). you have to do it in that order
 
 **Kv store**
 - Key value store, like a key value db (dynamo db)
@@ -118,6 +124,7 @@
     - not acid complient
     - bad at complex queries (no joins, not relational)
     - writes are more expensive at scale
+    - doesn't support windows so needs to run in docker (linux)
 
 **duckdb**
 - 'sql for analytics'
@@ -131,3 +138,24 @@
 - ideal for 
     feature engineering, ml preprocessing
 - note: duckdb appender api can write really fast since it writes right to binary
+
+**Prometheus**
+- open source metrics collection/alert system (good at distributed systems). like a time series database for metrics & can compute certain metrics (cpu use, queue size, model drift score, p99). it can hit my apps /metrics endpoint every x seconds
+- it's lightweight, integrates with everything, and is really good for most ecosystems
+
+**Grafana**
+- visualization/dashbaording tool that sites on top of things like prometheus
+- like a ui for dashboards, can query prometheus, loki, postgres... it's a quick way to see metrics
+- does not collect metrics, it just queries and shows them
+
+**azure blob storage**
+- binary large object. any file. it's unstructured data storage, so think of it as just tossing it in a drawer. accessed by https, or rest api. it's made for web based access. ex) spotify music storage: the db is used to index the data/metadata. the media files are in blob. the db has links to the blob.
+    - block: block of data where we manage each block. can have up to 50k blocks per blob
+    - append: blocks but opimized for appending new data to blobs
+    - page blob: made for frequent, random read/writes
+    - tiers
+        - hot: frequently accessed
+        - cool: not frequently accessed
+        - archive: long term storage, slow
+
+    I want cool tier or archive, I guess page blob if available. I won't have enough stuff for blocks
