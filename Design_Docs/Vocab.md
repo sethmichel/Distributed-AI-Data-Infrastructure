@@ -32,7 +32,7 @@
 - The stuff our ai questions get converted into to feed an ai. It's a high dimension vector
 
 **gRPC**
-- It's a better http request. it's function calls over the network, but fast and type safe. the "rpc" is for modern systems (high performance)
+- It's a better http request at scale. it's function calls over the network, but fast and type safe. the "rpc" is for modern systems (high performance)
 - instead of sending json or rest requests like "post/predict { text: hello world}" you send
     rpc Predict(predictRequest) returns (predictResponse)
     Then the client calls "response = model_server.prediuct(request)
@@ -46,6 +46,33 @@
     - Used btw inference servers (token streaming)
 
 - important feature: client side streaming: the client chops a large file into small binary peices and streams them to the server one by one over a single connection. it's really fast and efficient for large data transfers
+
+    - example gRPC usage
+        - to get it to work, follow the instructions in Proto/how to get grpc to work.md. this should make a bunch of files
+        - my_service.proto (blueprint)
+            - this is language neutral, I define what data to send and what functions to call
+        - my_service_pb2.py (the data)
+            - the python classes for messages. handles serializeation of converting python obj to bytes and deserialization. I import this to create requests and read responses
+        - my_service_pb2_grpc.py (connection): 
+            - client side (myservicestub), I use this to call the server. it sends data over the network
+            - server side: myserviceservicer: I inherit from this class to implment the logic. it handles the plumbing of getting the request and sending teh response
+        - my_service_grpc.pb.go
+            - go interface for the connection. RegisterMyServiceServer(...) is a function to link your implementation to the gRPC server
+        - my_service.pb.go
+            - the generated go structs. it lets me use "req := &myservice.HelloRequest{Name: "Seth"}" in my code
+    
+    - tutorial: IBM -> https://www.youtube.com/watch?v=hVrwuMnCtok
+        - scenario: python, java, go microservices. communication btw the services
+        - summary: if you have microservices, you have to import something like http handling and maybe http json compression handling in each service. if the services are in different languages then these packages are maintained by different groups. these inconvenciences are answered by gprc which lets you define a schema for what data your send, and what protocols you expose to the services. it sends data as binary so you don't need to import the request/compression libraries in all serivcces. it's also much better in all ways (except cpu usage) at scale. how it works is it sends our protocols/message types to the compiler which outputs source code in the target language -> that's how golang can talk to python.
+        - note: python, java, go all have their own http libraries maintained by difference groups
+            - this can make problems down the road
+        - code generation
+            - because it uses protocol buffers. run the proto file against a compiler and it outputs source code in the target language.
+            - the protocol buffers send messages as binary which astronomically smaller than rest json. we could use a tool to compress the rest json but we'd need to import it in each microservice in different languages
+        - misc details
+            - the proto file is basically a schema for data being sent (obj types, data struct), and the procedures we expect to expose. so we say what procedures other microservices can call (these are likley the callable functions)
+                - the rpc in grpc is remote procedure calling, which is the proto file schema defining what functions (procedures) to expose so other things can call them
+
 
 
 **Vector database**

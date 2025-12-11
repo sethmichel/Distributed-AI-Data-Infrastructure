@@ -1,0 +1,20 @@
+server:
+  service_a_port: 50051
+  service_b_port: 50052
+  metrics_port: 9091
+
+workers:
+  max_python_workers: 5
+
+paths:
+  azure_path: "./Data/Azure"
+  model_cache: "./Data/model_cache"
+
+drift:
+  threshold: 0.1
+
+connections:
+  duckdb_path: "./Data/offline_store.duckdb"
+  redis_addr: "localhost:6379"
+  azure_conn: "UseDevelopmentStorage=true"
+

@@ -6,6 +6,7 @@ A Distributed AI Data Platform (Feature Store + Model Serving + Drift Monitoring
 
 This is the infrastructure to support scalable ml models
 
+# fast/basic overview of the services
 Service A: Distributed Feature Store
 - Ingests streaming + batch data
 - Computes features with a DAG engine (Transform Orchestrator)
@@ -18,21 +19,18 @@ Service A: Distributed Feature Store
     - Lineage means how a feature was computed, what it depended on. It’s ancestry
     - Backfills mean recompute historical features after a bug fix, new data source...
 
-
 Service B: Model Serving Platform
 - Hosts multiple ML models (XGBoost, LightGBM, transformers, whatever)
 - Autoscaling workers
-- gRPC or REST inference API
+- gRPC inference API
 - Model versioning + canary deployments
 - p95 latency tracking
-
 
 Service C: Drift + Data Quality Monitoring
 - Monitors incoming distributions vs historical distributions
 - Detects feature drift, label drift, performance drop
 - Supports alerting
 - Generates dashboards
-
 
 Service D: Batch Pipeline Orchestrator
 - Runs ETL/ELT pipelines
@@ -48,7 +46,7 @@ This is a scaled-down version of:
 
 
 Skills
-Go, Python, gRPC, Docker, Redis, Kafka/NATS, Postgres, DuckDB, Prometheus, Grafana, distributed systems, autoscaling, load balancing, streaming data pipelines, online/offline feature stores, model serving, drift detection, batch scheduling, consistency guarantees, microservices architecture, container orchestration, concurrency.
+Go, Python, gRPC, Docker, Redis, Kafka, Postgres, DuckDB, Prometheus, Grafana, distributed systems, autoscaling, load balancing, streaming data pipelines, online/offline feature stores, model serving, drift detection, batch scheduling, consistency guarantees, microservices architecture, container orchestration, concurrency.
 
 What does it solve
 “It solves ML reliability. It guarantees that models always use fresh, correct, and consistent data; are monitored for drift; can be deployed safely; and can scale horizontally. In short: it makes machine learning production-ready.”
@@ -564,7 +562,7 @@ Details
 
 
 --------------------------------------------------
-Design Notes
+# Design Notes
 - Need a resource tracker. should not exceed 90% ram, limit the number of threads/workers, etc
 
 - Need to code in sleep's/timers to wait until other processes are finsihed. either so workers/threads free up, or for processing
@@ -576,7 +574,7 @@ Design Notes
 
 - lingo: "hydrated" means the full data amount we need. ex) we give the user_id and it gets hydrated by returning all the features for that user_id
 
-- have 1 docker yml file to wpin up containers for prometheus, grafana, redis. and make a rebuild script. redis actually doesn't support windows so it needs to be in docker. serivce A,b,c code should be outside docker. prometheus is in a container but needs to scrape my local endpoint so I need soemthing like this under prometheus in the yml file, and point to whatever port my go app uses instead of localhost
+- have 1 docker yml file to spin up containers for prometheus, grafana, redis. and make a rebuild script. redis actually doesn't support windows so it needs to be in docker. serivce A,b,c code should be outside docker. prometheus is in a container but needs to scrape my local endpoint so I need soemthing like this under prometheus in the yml file, and point to whatever port my go app uses instead of localhost
         extra_hosts:
       - "host.docker.internal:host-gateway" # CRITICAL: Allows Prometheus (inside Docker) to talk to your Go app (on localhost)
 
@@ -584,18 +582,13 @@ Design Notes
 
 ----------------------------------------------------
 
-NEXT STEPS
-- figure out azure
-    - azure blob storage with a tiny custom model registry around it. it's not great for metadata but that's going in duckdb
 
-- ask ai about the overall project, what it thinks the hard parts are, what thinks I should avoid (requires I clearify what areas I'm skipping so it knows)
-    - how will I handle multiple services trying to write to duckdb?
-        - solution: some sort of job queue OR a singleton database writer in go which is a go routine for writes that it gets via a channel. OR use separate duckdb files for each service
 
-- write a master summary 
-
+# NEXT STEPS
 - write the resume bullet points
 
 - write a summary of what to setup since the setup is always pretty hard. goal is not to have to mess it at all during dev
+
+- write the config/controller files. like the code that handles the duckdb writes, the go routines, python threads, restoreing broken python threads...
 
 - write each service one by one

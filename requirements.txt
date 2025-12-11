@@ -1,0 +1,10 @@
+pandas
+numpy
+scikit-learn
+grpcio
+grpcio-tools
+redis
+duckdb
+azure-storage-blob
+python-dotenv
+
