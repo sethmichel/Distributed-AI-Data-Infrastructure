@@ -7,4 +7,3 @@ docker-compose up -d --build
 
 echo "Done! Services are running."
 docker-compose ps
-

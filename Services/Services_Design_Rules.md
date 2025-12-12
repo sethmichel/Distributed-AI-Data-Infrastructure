@@ -1,0 +1,1 @@
+1) You can only spawn a python worker if the number of "in progress" jobs in redis is less than the max number of allowed workers. This is handled by CPU_limiter.go

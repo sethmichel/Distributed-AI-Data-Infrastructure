@@ -4,7 +4,7 @@ server:
   metrics_port: 9091
 
 workers:
-  max_python_workers: 5
+  max_python_workers: 10
 
 paths:
   azure_path: "./Data/Azure"

@@ -25,8 +25,8 @@ if _version_not_supported:
     )
 
 
-class MyServiceStub(object):
-    """The service definition.
+class FeatureStoreStub(object):
+    """--- Service A: Feature Store ---
     """
 
     def __init__(self, channel):
@@ -35,46 +35,63 @@ class MyServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.SayHello = channel.unary_unary(
-                '/myservice.MyService/SayHello',
-                request_serializer=My__Service__pb2.HelloRequest.SerializeToString,
-                response_deserializer=My__Service__pb2.HelloReply.FromString,
+        self.IngestEvents = channel.unary_unary(
+                '/myservice.FeatureStore/IngestEvents',
+                request_serializer=My__Service__pb2.IngestRequest.SerializeToString,
+                response_deserializer=My__Service__pb2.IngestResponse.FromString,
+                _registered_method=True)
+        self.UploadFile = channel.stream_unary(
+                '/myservice.FeatureStore/UploadFile',
+                request_serializer=My__Service__pb2.FileChunk.SerializeToString,
+                response_deserializer=My__Service__pb2.UploadStatus.FromString,
                 _registered_method=True)
 
 
-class MyServiceServicer(object):
-    """The service definition.
+class FeatureStoreServicer(object):
+    """--- Service A: Feature Store ---
     """
 
-    def SayHello(self, request, context):
-        """Sends a greeting
+    def IngestEvents(self, request, context):
+        """Ingest batch data (e.g., from file uploads)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UploadFile(self, request_iterator, context):
+        """File upload capability (chunks for large files)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_MyServiceServicer_to_server(servicer, server):
+def add_FeatureStoreServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'SayHello': grpc.unary_unary_rpc_method_handler(
-                    servicer.SayHello,
-                    request_deserializer=My__Service__pb2.HelloRequest.FromString,
-                    response_serializer=My__Service__pb2.HelloReply.SerializeToString,
+            'IngestEvents': grpc.unary_unary_rpc_method_handler(
+                    servicer.IngestEvents,
+                    request_deserializer=My__Service__pb2.IngestRequest.FromString,
+                    response_serializer=My__Service__pb2.IngestResponse.SerializeToString,
+            ),
+            'UploadFile': grpc.stream_unary_rpc_method_handler(
+                    servicer.UploadFile,
+                    request_deserializer=My__Service__pb2.FileChunk.FromString,
+                    response_serializer=My__Service__pb2.UploadStatus.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'myservice.MyService', rpc_method_handlers)
+            'myservice.FeatureStore', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('myservice.MyService', rpc_method_handlers)
+    server.add_registered_method_handlers('myservice.FeatureStore', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class MyService(object):
-    """The service definition.
+class FeatureStore(object):
+    """--- Service A: Feature Store ---
     """
 
     @staticmethod
-    def SayHello(request,
+    def IngestEvents(request,
             target,
             options=(),
             channel_credentials=None,
@@ -87,9 +104,398 @@ class MyService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/myservice.MyService/SayHello',
-            My__Service__pb2.HelloRequest.SerializeToString,
-            My__Service__pb2.HelloReply.FromString,
+            '/myservice.FeatureStore/IngestEvents',
+            My__Service__pb2.IngestRequest.SerializeToString,
+            My__Service__pb2.IngestResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UploadFile(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(
+            request_iterator,
+            target,
+            '/myservice.FeatureStore/UploadFile',
+            My__Service__pb2.FileChunk.SerializeToString,
+            My__Service__pb2.UploadStatus.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class ModelServingStub(object):
+    """--- Service B: Model Serving ---
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Predict = channel.unary_unary(
+                '/myservice.ModelServing/Predict',
+                request_serializer=My__Service__pb2.PredictRequest.SerializeToString,
+                response_deserializer=My__Service__pb2.PredictResponse.FromString,
+                _registered_method=True)
+
+
+class ModelServingServicer(object):
+    """--- Service B: Model Serving ---
+    """
+
+    def Predict(self, request, context):
+        """Client calls this to get a prediction
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_ModelServingServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Predict': grpc.unary_unary_rpc_method_handler(
+                    servicer.Predict,
+                    request_deserializer=My__Service__pb2.PredictRequest.FromString,
+                    response_serializer=My__Service__pb2.PredictResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'myservice.ModelServing', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('myservice.ModelServing', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class ModelServing(object):
+    """--- Service B: Model Serving ---
+    """
+
+    @staticmethod
+    def Predict(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/myservice.ModelServing/Predict',
+            My__Service__pb2.PredictRequest.SerializeToString,
+            My__Service__pb2.PredictResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class PythonWorkerStub(object):
+    """--- Internal Python Worker Interface ---
+    Used by Service A (Transformation) and Service B (Inference)
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.TransformFeatures = channel.unary_unary(
+                '/myservice.PythonWorker/TransformFeatures',
+                request_serializer=My__Service__pb2.TransformRequest.SerializeToString,
+                response_deserializer=My__Service__pb2.TransformResponse.FromString,
+                _registered_method=True)
+        self.RunInference = channel.unary_unary(
+                '/myservice.PythonWorker/RunInference',
+                request_serializer=My__Service__pb2.InferenceRequest.SerializeToString,
+                response_deserializer=My__Service__pb2.InferenceResponse.FromString,
+                _registered_method=True)
+        self.CalculateDrift = channel.unary_unary(
+                '/myservice.PythonWorker/CalculateDrift',
+                request_serializer=My__Service__pb2.DriftRequest.SerializeToString,
+                response_deserializer=My__Service__pb2.DriftResponse.FromString,
+                _registered_method=True)
+        self.TrainModel = channel.unary_unary(
+                '/myservice.PythonWorker/TrainModel',
+                request_serializer=My__Service__pb2.TrainRequest.SerializeToString,
+                response_deserializer=My__Service__pb2.TrainResponse.FromString,
+                _registered_method=True)
+
+
+class PythonWorkerServicer(object):
+    """--- Internal Python Worker Interface ---
+    Used by Service A (Transformation) and Service B (Inference)
+    """
+
+    def TransformFeatures(self, request, context):
+        """Service A calls this to transform raw data
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RunInference(self, request, context):
+        """Service B calls this to run inference
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CalculateDrift(self, request, context):
+        """Service C calls this for drift calculation
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def TrainModel(self, request, context):
+        """Service D calls this for training
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_PythonWorkerServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'TransformFeatures': grpc.unary_unary_rpc_method_handler(
+                    servicer.TransformFeatures,
+                    request_deserializer=My__Service__pb2.TransformRequest.FromString,
+                    response_serializer=My__Service__pb2.TransformResponse.SerializeToString,
+            ),
+            'RunInference': grpc.unary_unary_rpc_method_handler(
+                    servicer.RunInference,
+                    request_deserializer=My__Service__pb2.InferenceRequest.FromString,
+                    response_serializer=My__Service__pb2.InferenceResponse.SerializeToString,
+            ),
+            'CalculateDrift': grpc.unary_unary_rpc_method_handler(
+                    servicer.CalculateDrift,
+                    request_deserializer=My__Service__pb2.DriftRequest.FromString,
+                    response_serializer=My__Service__pb2.DriftResponse.SerializeToString,
+            ),
+            'TrainModel': grpc.unary_unary_rpc_method_handler(
+                    servicer.TrainModel,
+                    request_deserializer=My__Service__pb2.TrainRequest.FromString,
+                    response_serializer=My__Service__pb2.TrainResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'myservice.PythonWorker', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('myservice.PythonWorker', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class PythonWorker(object):
+    """--- Internal Python Worker Interface ---
+    Used by Service A (Transformation) and Service B (Inference)
+    """
+
+    @staticmethod
+    def TransformFeatures(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/myservice.PythonWorker/TransformFeatures',
+            My__Service__pb2.TransformRequest.SerializeToString,
+            My__Service__pb2.TransformResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RunInference(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/myservice.PythonWorker/RunInference',
+            My__Service__pb2.InferenceRequest.SerializeToString,
+            My__Service__pb2.InferenceResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CalculateDrift(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/myservice.PythonWorker/CalculateDrift',
+            My__Service__pb2.DriftRequest.SerializeToString,
+            My__Service__pb2.DriftResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def TrainModel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/myservice.PythonWorker/TrainModel',
+            My__Service__pb2.TrainRequest.SerializeToString,
+            My__Service__pb2.TrainResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class JobSchedulerStub(object):
+    """--- Service D: Job Scheduler ---
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.TriggerJob = channel.unary_unary(
+                '/myservice.JobScheduler/TriggerJob',
+                request_serializer=My__Service__pb2.TriggerJobRequest.SerializeToString,
+                response_deserializer=My__Service__pb2.TriggerJobResponse.FromString,
+                _registered_method=True)
+
+
+class JobSchedulerServicer(object):
+    """--- Service D: Job Scheduler ---
+    """
+
+    def TriggerJob(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_JobSchedulerServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'TriggerJob': grpc.unary_unary_rpc_method_handler(
+                    servicer.TriggerJob,
+                    request_deserializer=My__Service__pb2.TriggerJobRequest.FromString,
+                    response_serializer=My__Service__pb2.TriggerJobResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'myservice.JobScheduler', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('myservice.JobScheduler', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class JobScheduler(object):
+    """--- Service D: Job Scheduler ---
+    """
+
+    @staticmethod
+    def TriggerJob(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/myservice.JobScheduler/TriggerJob',
+            My__Service__pb2.TriggerJobRequest.SerializeToString,
+            My__Service__pb2.TriggerJobResponse.FromString,
             options,
             channel_credentials,
             insecure,

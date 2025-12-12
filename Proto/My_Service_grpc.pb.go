@@ -19,107 +19,585 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MyService_SayHello_FullMethodName = "/myservice.MyService/SayHello"
+	FeatureStore_IngestEvents_FullMethodName = "/myservice.FeatureStore/IngestEvents"
+	FeatureStore_UploadFile_FullMethodName   = "/myservice.FeatureStore/UploadFile"
 )
 
-// MyServiceClient is the client API for MyService service.
+// FeatureStoreClient is the client API for FeatureStore service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// The service definition.
-type MyServiceClient interface {
-	// Sends a greeting
-	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
+// --- Service A: Feature Store ---
+type FeatureStoreClient interface {
+	// Ingest batch data (e.g., from file uploads)
+	IngestEvents(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*IngestResponse, error)
+	// File upload capability (chunks for large files)
+	UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FileChunk, UploadStatus], error)
 }
 
-type myServiceClient struct {
+type featureStoreClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewMyServiceClient(cc grpc.ClientConnInterface) MyServiceClient {
-	return &myServiceClient{cc}
+func NewFeatureStoreClient(cc grpc.ClientConnInterface) FeatureStoreClient {
+	return &featureStoreClient{cc}
 }
 
-func (c *myServiceClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error) {
+func (c *featureStoreClient) IngestEvents(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*IngestResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(HelloReply)
-	err := c.cc.Invoke(ctx, MyService_SayHello_FullMethodName, in, out, cOpts...)
+	out := new(IngestResponse)
+	err := c.cc.Invoke(ctx, FeatureStore_IngestEvents_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// MyServiceServer is the server API for MyService service.
-// All implementations must embed UnimplementedMyServiceServer
-// for forward compatibility.
-//
-// The service definition.
-type MyServiceServer interface {
-	// Sends a greeting
-	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
-	mustEmbedUnimplementedMyServiceServer()
+func (c *featureStoreClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FileChunk, UploadStatus], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &FeatureStore_ServiceDesc.Streams[0], FeatureStore_UploadFile_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[FileChunk, UploadStatus]{ClientStream: stream}
+	return x, nil
 }
 
-// UnimplementedMyServiceServer must be embedded to have
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type FeatureStore_UploadFileClient = grpc.ClientStreamingClient[FileChunk, UploadStatus]
+
+// FeatureStoreServer is the server API for FeatureStore service.
+// All implementations must embed UnimplementedFeatureStoreServer
+// for forward compatibility.
+//
+// --- Service A: Feature Store ---
+type FeatureStoreServer interface {
+	// Ingest batch data (e.g., from file uploads)
+	IngestEvents(context.Context, *IngestRequest) (*IngestResponse, error)
+	// File upload capability (chunks for large files)
+	UploadFile(grpc.ClientStreamingServer[FileChunk, UploadStatus]) error
+	mustEmbedUnimplementedFeatureStoreServer()
+}
+
+// UnimplementedFeatureStoreServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedMyServiceServer struct{}
+type UnimplementedFeatureStoreServer struct{}
 
-func (UnimplementedMyServiceServer) SayHello(context.Context, *HelloRequest) (*HelloReply, error) {
-	return nil, status.Error(codes.Unimplemented, "method SayHello not implemented")
+func (UnimplementedFeatureStoreServer) IngestEvents(context.Context, *IngestRequest) (*IngestResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method IngestEvents not implemented")
 }
-func (UnimplementedMyServiceServer) mustEmbedUnimplementedMyServiceServer() {}
-func (UnimplementedMyServiceServer) testEmbeddedByValue()                   {}
+func (UnimplementedFeatureStoreServer) UploadFile(grpc.ClientStreamingServer[FileChunk, UploadStatus]) error {
+	return status.Error(codes.Unimplemented, "method UploadFile not implemented")
+}
+func (UnimplementedFeatureStoreServer) mustEmbedUnimplementedFeatureStoreServer() {}
+func (UnimplementedFeatureStoreServer) testEmbeddedByValue()                      {}
 
-// UnsafeMyServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to MyServiceServer will
+// UnsafeFeatureStoreServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to FeatureStoreServer will
 // result in compilation errors.
-type UnsafeMyServiceServer interface {
-	mustEmbedUnimplementedMyServiceServer()
+type UnsafeFeatureStoreServer interface {
+	mustEmbedUnimplementedFeatureStoreServer()
 }
 
-func RegisterMyServiceServer(s grpc.ServiceRegistrar, srv MyServiceServer) {
-	// If the following call panics, it indicates UnimplementedMyServiceServer was
+func RegisterFeatureStoreServer(s grpc.ServiceRegistrar, srv FeatureStoreServer) {
+	// If the following call panics, it indicates UnimplementedFeatureStoreServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&MyService_ServiceDesc, srv)
+	s.RegisterService(&FeatureStore_ServiceDesc, srv)
 }
 
-func _MyService_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HelloRequest)
+func _FeatureStore_IngestEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IngestRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MyServiceServer).SayHello(ctx, in)
+		return srv.(FeatureStoreServer).IngestEvents(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: MyService_SayHello_FullMethodName,
+		FullMethod: FeatureStore_IngestEvents_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MyServiceServer).SayHello(ctx, req.(*HelloRequest))
+		return srv.(FeatureStoreServer).IngestEvents(ctx, req.(*IngestRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// MyService_ServiceDesc is the grpc.ServiceDesc for MyService service.
+func _FeatureStore_UploadFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(FeatureStoreServer).UploadFile(&grpc.GenericServerStream[FileChunk, UploadStatus]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type FeatureStore_UploadFileServer = grpc.ClientStreamingServer[FileChunk, UploadStatus]
+
+// FeatureStore_ServiceDesc is the grpc.ServiceDesc for FeatureStore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var MyService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "myservice.MyService",
-	HandlerType: (*MyServiceServer)(nil),
+var FeatureStore_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "myservice.FeatureStore",
+	HandlerType: (*FeatureStoreServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SayHello",
-			Handler:    _MyService_SayHello_Handler,
+			MethodName: "IngestEvents",
+			Handler:    _FeatureStore_IngestEvents_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "UploadFile",
+			Handler:       _FeatureStore_UploadFile_Handler,
+			ClientStreams: true,
+		},
+	},
+	Metadata: "My_Service.proto",
+}
+
+const (
+	ModelServing_Predict_FullMethodName = "/myservice.ModelServing/Predict"
+)
+
+// ModelServingClient is the client API for ModelServing service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// --- Service B: Model Serving ---
+type ModelServingClient interface {
+	// Client calls this to get a prediction
+	Predict(ctx context.Context, in *PredictRequest, opts ...grpc.CallOption) (*PredictResponse, error)
+}
+
+type modelServingClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewModelServingClient(cc grpc.ClientConnInterface) ModelServingClient {
+	return &modelServingClient{cc}
+}
+
+func (c *modelServingClient) Predict(ctx context.Context, in *PredictRequest, opts ...grpc.CallOption) (*PredictResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PredictResponse)
+	err := c.cc.Invoke(ctx, ModelServing_Predict_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ModelServingServer is the server API for ModelServing service.
+// All implementations must embed UnimplementedModelServingServer
+// for forward compatibility.
+//
+// --- Service B: Model Serving ---
+type ModelServingServer interface {
+	// Client calls this to get a prediction
+	Predict(context.Context, *PredictRequest) (*PredictResponse, error)
+	mustEmbedUnimplementedModelServingServer()
+}
+
+// UnimplementedModelServingServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedModelServingServer struct{}
+
+func (UnimplementedModelServingServer) Predict(context.Context, *PredictRequest) (*PredictResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Predict not implemented")
+}
+func (UnimplementedModelServingServer) mustEmbedUnimplementedModelServingServer() {}
+func (UnimplementedModelServingServer) testEmbeddedByValue()                      {}
+
+// UnsafeModelServingServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ModelServingServer will
+// result in compilation errors.
+type UnsafeModelServingServer interface {
+	mustEmbedUnimplementedModelServingServer()
+}
+
+func RegisterModelServingServer(s grpc.ServiceRegistrar, srv ModelServingServer) {
+	// If the following call panics, it indicates UnimplementedModelServingServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&ModelServing_ServiceDesc, srv)
+}
+
+func _ModelServing_Predict_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PredictRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelServingServer).Predict(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ModelServing_Predict_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelServingServer).Predict(ctx, req.(*PredictRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// ModelServing_ServiceDesc is the grpc.ServiceDesc for ModelServing service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ModelServing_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "myservice.ModelServing",
+	HandlerType: (*ModelServingServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Predict",
+			Handler:    _ModelServing_Predict_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "My_Service.proto",
+}
+
+const (
+	PythonWorker_TransformFeatures_FullMethodName = "/myservice.PythonWorker/TransformFeatures"
+	PythonWorker_RunInference_FullMethodName      = "/myservice.PythonWorker/RunInference"
+	PythonWorker_CalculateDrift_FullMethodName    = "/myservice.PythonWorker/CalculateDrift"
+	PythonWorker_TrainModel_FullMethodName        = "/myservice.PythonWorker/TrainModel"
+)
+
+// PythonWorkerClient is the client API for PythonWorker service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// --- Internal Python Worker Interface ---
+// Used by Service A (Transformation) and Service B (Inference)
+type PythonWorkerClient interface {
+	// Service A calls this to transform raw data
+	TransformFeatures(ctx context.Context, in *TransformRequest, opts ...grpc.CallOption) (*TransformResponse, error)
+	// Service B calls this to run inference
+	RunInference(ctx context.Context, in *InferenceRequest, opts ...grpc.CallOption) (*InferenceResponse, error)
+	// Service C calls this for drift calculation
+	CalculateDrift(ctx context.Context, in *DriftRequest, opts ...grpc.CallOption) (*DriftResponse, error)
+	// Service D calls this for training
+	TrainModel(ctx context.Context, in *TrainRequest, opts ...grpc.CallOption) (*TrainResponse, error)
+}
+
+type pythonWorkerClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewPythonWorkerClient(cc grpc.ClientConnInterface) PythonWorkerClient {
+	return &pythonWorkerClient{cc}
+}
+
+func (c *pythonWorkerClient) TransformFeatures(ctx context.Context, in *TransformRequest, opts ...grpc.CallOption) (*TransformResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TransformResponse)
+	err := c.cc.Invoke(ctx, PythonWorker_TransformFeatures_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pythonWorkerClient) RunInference(ctx context.Context, in *InferenceRequest, opts ...grpc.CallOption) (*InferenceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InferenceResponse)
+	err := c.cc.Invoke(ctx, PythonWorker_RunInference_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pythonWorkerClient) CalculateDrift(ctx context.Context, in *DriftRequest, opts ...grpc.CallOption) (*DriftResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DriftResponse)
+	err := c.cc.Invoke(ctx, PythonWorker_CalculateDrift_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pythonWorkerClient) TrainModel(ctx context.Context, in *TrainRequest, opts ...grpc.CallOption) (*TrainResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TrainResponse)
+	err := c.cc.Invoke(ctx, PythonWorker_TrainModel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// PythonWorkerServer is the server API for PythonWorker service.
+// All implementations must embed UnimplementedPythonWorkerServer
+// for forward compatibility.
+//
+// --- Internal Python Worker Interface ---
+// Used by Service A (Transformation) and Service B (Inference)
+type PythonWorkerServer interface {
+	// Service A calls this to transform raw data
+	TransformFeatures(context.Context, *TransformRequest) (*TransformResponse, error)
+	// Service B calls this to run inference
+	RunInference(context.Context, *InferenceRequest) (*InferenceResponse, error)
+	// Service C calls this for drift calculation
+	CalculateDrift(context.Context, *DriftRequest) (*DriftResponse, error)
+	// Service D calls this for training
+	TrainModel(context.Context, *TrainRequest) (*TrainResponse, error)
+	mustEmbedUnimplementedPythonWorkerServer()
+}
+
+// UnimplementedPythonWorkerServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedPythonWorkerServer struct{}
+
+func (UnimplementedPythonWorkerServer) TransformFeatures(context.Context, *TransformRequest) (*TransformResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TransformFeatures not implemented")
+}
+func (UnimplementedPythonWorkerServer) RunInference(context.Context, *InferenceRequest) (*InferenceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RunInference not implemented")
+}
+func (UnimplementedPythonWorkerServer) CalculateDrift(context.Context, *DriftRequest) (*DriftResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CalculateDrift not implemented")
+}
+func (UnimplementedPythonWorkerServer) TrainModel(context.Context, *TrainRequest) (*TrainResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TrainModel not implemented")
+}
+func (UnimplementedPythonWorkerServer) mustEmbedUnimplementedPythonWorkerServer() {}
+func (UnimplementedPythonWorkerServer) testEmbeddedByValue()                      {}
+
+// UnsafePythonWorkerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to PythonWorkerServer will
+// result in compilation errors.
+type UnsafePythonWorkerServer interface {
+	mustEmbedUnimplementedPythonWorkerServer()
+}
+
+func RegisterPythonWorkerServer(s grpc.ServiceRegistrar, srv PythonWorkerServer) {
+	// If the following call panics, it indicates UnimplementedPythonWorkerServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&PythonWorker_ServiceDesc, srv)
+}
+
+func _PythonWorker_TransformFeatures_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TransformRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PythonWorkerServer).TransformFeatures(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PythonWorker_TransformFeatures_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PythonWorkerServer).TransformFeatures(ctx, req.(*TransformRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PythonWorker_RunInference_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InferenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PythonWorkerServer).RunInference(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PythonWorker_RunInference_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PythonWorkerServer).RunInference(ctx, req.(*InferenceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PythonWorker_CalculateDrift_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DriftRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PythonWorkerServer).CalculateDrift(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PythonWorker_CalculateDrift_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PythonWorkerServer).CalculateDrift(ctx, req.(*DriftRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PythonWorker_TrainModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TrainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PythonWorkerServer).TrainModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PythonWorker_TrainModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PythonWorkerServer).TrainModel(ctx, req.(*TrainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// PythonWorker_ServiceDesc is the grpc.ServiceDesc for PythonWorker service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var PythonWorker_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "myservice.PythonWorker",
+	HandlerType: (*PythonWorkerServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "TransformFeatures",
+			Handler:    _PythonWorker_TransformFeatures_Handler,
+		},
+		{
+			MethodName: "RunInference",
+			Handler:    _PythonWorker_RunInference_Handler,
+		},
+		{
+			MethodName: "CalculateDrift",
+			Handler:    _PythonWorker_CalculateDrift_Handler,
+		},
+		{
+			MethodName: "TrainModel",
+			Handler:    _PythonWorker_TrainModel_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "My_Service.proto",
+}
+
+const (
+	JobScheduler_TriggerJob_FullMethodName = "/myservice.JobScheduler/TriggerJob"
+)
+
+// JobSchedulerClient is the client API for JobScheduler service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// --- Service D: Job Scheduler ---
+type JobSchedulerClient interface {
+	TriggerJob(ctx context.Context, in *TriggerJobRequest, opts ...grpc.CallOption) (*TriggerJobResponse, error)
+}
+
+type jobSchedulerClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewJobSchedulerClient(cc grpc.ClientConnInterface) JobSchedulerClient {
+	return &jobSchedulerClient{cc}
+}
+
+func (c *jobSchedulerClient) TriggerJob(ctx context.Context, in *TriggerJobRequest, opts ...grpc.CallOption) (*TriggerJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TriggerJobResponse)
+	err := c.cc.Invoke(ctx, JobScheduler_TriggerJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// JobSchedulerServer is the server API for JobScheduler service.
+// All implementations must embed UnimplementedJobSchedulerServer
+// for forward compatibility.
+//
+// --- Service D: Job Scheduler ---
+type JobSchedulerServer interface {
+	TriggerJob(context.Context, *TriggerJobRequest) (*TriggerJobResponse, error)
+	mustEmbedUnimplementedJobSchedulerServer()
+}
+
+// UnimplementedJobSchedulerServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedJobSchedulerServer struct{}
+
+func (UnimplementedJobSchedulerServer) TriggerJob(context.Context, *TriggerJobRequest) (*TriggerJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TriggerJob not implemented")
+}
+func (UnimplementedJobSchedulerServer) mustEmbedUnimplementedJobSchedulerServer() {}
+func (UnimplementedJobSchedulerServer) testEmbeddedByValue()                      {}
+
+// UnsafeJobSchedulerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to JobSchedulerServer will
+// result in compilation errors.
+type UnsafeJobSchedulerServer interface {
+	mustEmbedUnimplementedJobSchedulerServer()
+}
+
+func RegisterJobSchedulerServer(s grpc.ServiceRegistrar, srv JobSchedulerServer) {
+	// If the following call panics, it indicates UnimplementedJobSchedulerServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&JobScheduler_ServiceDesc, srv)
+}
+
+func _JobScheduler_TriggerJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TriggerJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobSchedulerServer).TriggerJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: JobScheduler_TriggerJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobSchedulerServer).TriggerJob(ctx, req.(*TriggerJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// JobScheduler_ServiceDesc is the grpc.ServiceDesc for JobScheduler service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var JobScheduler_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "myservice.JobScheduler",
+	HandlerType: (*JobSchedulerServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "TriggerJob",
+			Handler:    _JobScheduler_TriggerJob_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

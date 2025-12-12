@@ -8,7 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-
 type App_Config struct {
 	Server struct {
 		ServiceAPort int `yaml:"service_a_port"`
@@ -41,7 +40,7 @@ type App_Config struct {
 func LoadConfig() (*App_Config, error) {
 	app_config_struct := &App_Config{}
 
-	f, err := os.Open("App.yaml")
+	f, err := os.Open("Global_Configs/App.yaml")
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +53,8 @@ func LoadConfig() (*App_Config, error) {
 	}
 
 	// loads into system env variables for this process
-	if err := godotenv.Load("Env/Azure.env"); err != nil {
-		log.Printf("WARNING: Env/Azure.env file not found or could not be loaded: %v", err)
+	if err := godotenv.Load("Global_Configs/Env/Azure.env"); err != nil {
+		log.Printf("WARNING: Global_Configs/Env/Azure.env file not found or could not be loaded: %v", err)
 	}
 
 	if conn := os.Getenv("AZURE_STORAGE_CONNECTION_STRING"); conn != "" {

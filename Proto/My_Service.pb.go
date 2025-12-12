@@ -21,28 +21,30 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// The request message containing the user's name.
-type HelloRequest struct {
+type Event struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	EntityId      string                 `protobuf:"bytes,1,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
+	FeatureName   string                 `protobuf:"bytes,2,opt,name=feature_name,json=featureName,proto3" json:"feature_name,omitempty"`
+	Value         float64                `protobuf:"fixed64,3,opt,name=value,proto3" json:"value,omitempty"`
+	Timestamp     string                 `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"` // ISO string
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *HelloRequest) Reset() {
-	*x = HelloRequest{}
+func (x *Event) Reset() {
+	*x = Event{}
 	mi := &file_My_Service_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *HelloRequest) String() string {
+func (x *Event) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*HelloRequest) ProtoMessage() {}
+func (*Event) ProtoMessage() {}
 
-func (x *HelloRequest) ProtoReflect() protoreflect.Message {
+func (x *Event) ProtoReflect() protoreflect.Message {
 	mi := &file_My_Service_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -54,40 +56,60 @@ func (x *HelloRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use HelloRequest.ProtoReflect.Descriptor instead.
-func (*HelloRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use Event.ProtoReflect.Descriptor instead.
+func (*Event) Descriptor() ([]byte, []int) {
 	return file_My_Service_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *HelloRequest) GetName() string {
+func (x *Event) GetEntityId() string {
 	if x != nil {
-		return x.Name
+		return x.EntityId
 	}
 	return ""
 }
 
-// The response message containing the greetings.
-type HelloReply struct {
+func (x *Event) GetFeatureName() string {
+	if x != nil {
+		return x.FeatureName
+	}
+	return ""
+}
+
+func (x *Event) GetValue() float64 {
+	if x != nil {
+		return x.Value
+	}
+	return 0
+}
+
+func (x *Event) GetTimestamp() string {
+	if x != nil {
+		return x.Timestamp
+	}
+	return ""
+}
+
+type IngestRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Events        []*Event               `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *HelloReply) Reset() {
-	*x = HelloReply{}
+func (x *IngestRequest) Reset() {
+	*x = IngestRequest{}
 	mi := &file_My_Service_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *HelloReply) String() string {
+func (x *IngestRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*HelloReply) ProtoMessage() {}
+func (*IngestRequest) ProtoMessage() {}
 
-func (x *HelloReply) ProtoReflect() protoreflect.Message {
+func (x *IngestRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_My_Service_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -99,14 +121,778 @@ func (x *HelloReply) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use HelloReply.ProtoReflect.Descriptor instead.
-func (*HelloReply) Descriptor() ([]byte, []int) {
+// Deprecated: Use IngestRequest.ProtoReflect.Descriptor instead.
+func (*IngestRequest) Descriptor() ([]byte, []int) {
 	return file_My_Service_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *HelloReply) GetMessage() string {
+func (x *IngestRequest) GetEvents() []*Event {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+type IngestResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IngestResponse) Reset() {
+	*x = IngestResponse{}
+	mi := &file_My_Service_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IngestResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IngestResponse) ProtoMessage() {}
+
+func (x *IngestResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IngestResponse.ProtoReflect.Descriptor instead.
+func (*IngestResponse) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *IngestResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *IngestResponse) GetMessage() string {
 	if x != nil {
 		return x.Message
+	}
+	return ""
+}
+
+type FileChunk struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Content       []byte                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
+	Filename      string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FileChunk) Reset() {
+	*x = FileChunk{}
+	mi := &file_My_Service_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FileChunk) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FileChunk) ProtoMessage() {}
+
+func (x *FileChunk) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FileChunk.ProtoReflect.Descriptor instead.
+func (*FileChunk) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *FileChunk) GetContent() []byte {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
+func (x *FileChunk) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+type UploadStatus struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadStatus) Reset() {
+	*x = UploadStatus{}
+	mi := &file_My_Service_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadStatus) ProtoMessage() {}
+
+func (x *UploadStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadStatus.ProtoReflect.Descriptor instead.
+func (*UploadStatus) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UploadStatus) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *UploadStatus) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type PredictRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ModelVersion  string                 `protobuf:"bytes,2,opt,name=model_version,json=modelVersion,proto3" json:"model_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PredictRequest) Reset() {
+	*x = PredictRequest{}
+	mi := &file_My_Service_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PredictRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PredictRequest) ProtoMessage() {}
+
+func (x *PredictRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PredictRequest.ProtoReflect.Descriptor instead.
+func (*PredictRequest) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PredictRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *PredictRequest) GetModelVersion() string {
+	if x != nil {
+		return x.ModelVersion
+	}
+	return ""
+}
+
+type PredictResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Prediction    float64                `protobuf:"fixed64,1,opt,name=prediction,proto3" json:"prediction,omitempty"`
+	ModelVersion  string                 `protobuf:"bytes,2,opt,name=model_version,json=modelVersion,proto3" json:"model_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PredictResponse) Reset() {
+	*x = PredictResponse{}
+	mi := &file_My_Service_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PredictResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PredictResponse) ProtoMessage() {}
+
+func (x *PredictResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PredictResponse.ProtoReflect.Descriptor instead.
+func (*PredictResponse) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *PredictResponse) GetPrediction() float64 {
+	if x != nil {
+		return x.Prediction
+	}
+	return 0
+}
+
+func (x *PredictResponse) GetModelVersion() string {
+	if x != nil {
+		return x.ModelVersion
+	}
+	return ""
+}
+
+type TransformRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Events        []*Event               `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TransformRequest) Reset() {
+	*x = TransformRequest{}
+	mi := &file_My_Service_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransformRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransformRequest) ProtoMessage() {}
+
+func (x *TransformRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransformRequest.ProtoReflect.Descriptor instead.
+func (*TransformRequest) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *TransformRequest) GetEvents() []*Event {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+type TransformResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Features      []*Event               `protobuf:"bytes,1,rep,name=features,proto3" json:"features,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TransformResponse) Reset() {
+	*x = TransformResponse{}
+	mi := &file_My_Service_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransformResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransformResponse) ProtoMessage() {}
+
+func (x *TransformResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransformResponse.ProtoReflect.Descriptor instead.
+func (*TransformResponse) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *TransformResponse) GetFeatures() []*Event {
+	if x != nil {
+		return x.Features
+	}
+	return nil
+}
+
+type InferenceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Features      []float64              `protobuf:"fixed64,1,rep,packed,name=features,proto3" json:"features,omitempty"` // Vectorized features
+	ModelVersion  string                 `protobuf:"bytes,2,opt,name=model_version,json=modelVersion,proto3" json:"model_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InferenceRequest) Reset() {
+	*x = InferenceRequest{}
+	mi := &file_My_Service_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceRequest) ProtoMessage() {}
+
+func (x *InferenceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceRequest.ProtoReflect.Descriptor instead.
+func (*InferenceRequest) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *InferenceRequest) GetFeatures() []float64 {
+	if x != nil {
+		return x.Features
+	}
+	return nil
+}
+
+func (x *InferenceRequest) GetModelVersion() string {
+	if x != nil {
+		return x.ModelVersion
+	}
+	return ""
+}
+
+type InferenceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Prediction    float64                `protobuf:"fixed64,1,opt,name=prediction,proto3" json:"prediction,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InferenceResponse) Reset() {
+	*x = InferenceResponse{}
+	mi := &file_My_Service_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferenceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferenceResponse) ProtoMessage() {}
+
+func (x *InferenceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferenceResponse.ProtoReflect.Descriptor instead.
+func (*InferenceResponse) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *InferenceResponse) GetPrediction() float64 {
+	if x != nil {
+		return x.Prediction
+	}
+	return 0
+}
+
+type DriftRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModelVersion  string                 `protobuf:"bytes,1,opt,name=model_version,json=modelVersion,proto3" json:"model_version,omitempty"`
+	TimeWindow    string                 `protobuf:"bytes,2,opt,name=time_window,json=timeWindow,proto3" json:"time_window,omitempty"` // e.g. "24h"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DriftRequest) Reset() {
+	*x = DriftRequest{}
+	mi := &file_My_Service_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DriftRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DriftRequest) ProtoMessage() {}
+
+func (x *DriftRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DriftRequest.ProtoReflect.Descriptor instead.
+func (*DriftRequest) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *DriftRequest) GetModelVersion() string {
+	if x != nil {
+		return x.ModelVersion
+	}
+	return ""
+}
+
+func (x *DriftRequest) GetTimeWindow() string {
+	if x != nil {
+		return x.TimeWindow
+	}
+	return ""
+}
+
+type DriftResponse struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	DriftScore         float64                `protobuf:"fixed64,1,opt,name=drift_score,json=driftScore,proto3" json:"drift_score,omitempty"`
+	FeatureDriftScores map[string]float64     `protobuf:"bytes,2,rep,name=feature_drift_scores,json=featureDriftScores,proto3" json:"feature_drift_scores,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed64,2,opt,name=value"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *DriftResponse) Reset() {
+	*x = DriftResponse{}
+	mi := &file_My_Service_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DriftResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DriftResponse) ProtoMessage() {}
+
+func (x *DriftResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DriftResponse.ProtoReflect.Descriptor instead.
+func (*DriftResponse) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *DriftResponse) GetDriftScore() float64 {
+	if x != nil {
+		return x.DriftScore
+	}
+	return 0
+}
+
+func (x *DriftResponse) GetFeatureDriftScores() map[string]float64 {
+	if x != nil {
+		return x.FeatureDriftScores
+	}
+	return nil
+}
+
+type TrainRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ModelName         string                 `protobuf:"bytes,1,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
+	TrainingDataRange string                 `protobuf:"bytes,2,opt,name=training_data_range,json=trainingDataRange,proto3" json:"training_data_range,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *TrainRequest) Reset() {
+	*x = TrainRequest{}
+	mi := &file_My_Service_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrainRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrainRequest) ProtoMessage() {}
+
+func (x *TrainRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrainRequest.ProtoReflect.Descriptor instead.
+func (*TrainRequest) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *TrainRequest) GetModelName() string {
+	if x != nil {
+		return x.ModelName
+	}
+	return ""
+}
+
+func (x *TrainRequest) GetTrainingDataRange() string {
+	if x != nil {
+		return x.TrainingDataRange
+	}
+	return ""
+}
+
+type TrainResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Success         bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	NewModelVersion string                 `protobuf:"bytes,2,opt,name=new_model_version,json=newModelVersion,proto3" json:"new_model_version,omitempty"`
+	Accuracy        float64                `protobuf:"fixed64,3,opt,name=accuracy,proto3" json:"accuracy,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *TrainResponse) Reset() {
+	*x = TrainResponse{}
+	mi := &file_My_Service_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrainResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrainResponse) ProtoMessage() {}
+
+func (x *TrainResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrainResponse.ProtoReflect.Descriptor instead.
+func (*TrainResponse) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *TrainResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *TrainResponse) GetNewModelVersion() string {
+	if x != nil {
+		return x.NewModelVersion
+	}
+	return ""
+}
+
+func (x *TrainResponse) GetAccuracy() float64 {
+	if x != nil {
+		return x.Accuracy
+	}
+	return 0
+}
+
+type TriggerJobRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobType       string                 `protobuf:"bytes,1,opt,name=job_type,json=jobType,proto3" json:"job_type,omitempty"` // e.g., "Retrain", "DriftCheck"
+	Params        map[string]string      `protobuf:"bytes,2,rep,name=params,proto3" json:"params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TriggerJobRequest) Reset() {
+	*x = TriggerJobRequest{}
+	mi := &file_My_Service_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TriggerJobRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TriggerJobRequest) ProtoMessage() {}
+
+func (x *TriggerJobRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TriggerJobRequest.ProtoReflect.Descriptor instead.
+func (*TriggerJobRequest) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *TriggerJobRequest) GetJobType() string {
+	if x != nil {
+		return x.JobType
+	}
+	return ""
+}
+
+func (x *TriggerJobRequest) GetParams() map[string]string {
+	if x != nil {
+		return x.Params
+	}
+	return nil
+}
+
+type TriggerJobResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TriggerJobResponse) Reset() {
+	*x = TriggerJobResponse{}
+	mi := &file_My_Service_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TriggerJobResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TriggerJobResponse) ProtoMessage() {}
+
+func (x *TriggerJobResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TriggerJobResponse.ProtoReflect.Descriptor instead.
+func (*TriggerJobResponse) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *TriggerJobResponse) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *TriggerJobResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
 	}
 	return ""
 }
@@ -115,14 +901,85 @@ var File_My_Service_proto protoreflect.FileDescriptor
 
 const file_My_Service_proto_rawDesc = "" +
 	"\n" +
-	"\x10My_Service.proto\x12\tmyservice\"\"\n" +
-	"\fHelloRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"&\n" +
+	"\x10My_Service.proto\x12\tmyservice\"{\n" +
+	"\x05Event\x12\x1b\n" +
+	"\tentity_id\x18\x01 \x01(\tR\bentityId\x12!\n" +
+	"\ffeature_name\x18\x02 \x01(\tR\vfeatureName\x12\x14\n" +
+	"\x05value\x18\x03 \x01(\x01R\x05value\x12\x1c\n" +
+	"\ttimestamp\x18\x04 \x01(\tR\ttimestamp\"9\n" +
+	"\rIngestRequest\x12(\n" +
+	"\x06events\x18\x01 \x03(\v2\x10.myservice.EventR\x06events\"D\n" +
+	"\x0eIngestResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"A\n" +
+	"\tFileChunk\x12\x18\n" +
+	"\acontent\x18\x01 \x01(\fR\acontent\x12\x1a\n" +
+	"\bfilename\x18\x02 \x01(\tR\bfilename\"B\n" +
+	"\fUploadStatus\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"N\n" +
+	"\x0ePredictRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12#\n" +
+	"\rmodel_version\x18\x02 \x01(\tR\fmodelVersion\"V\n" +
+	"\x0fPredictResponse\x12\x1e\n" +
 	"\n" +
-	"HelloReply\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2I\n" +
-	"\tMyService\x12<\n" +
-	"\bSayHello\x12\x17.myservice.HelloRequest\x1a\x15.myservice.HelloReply\"\x00B\x0eZ\f./;myserviceb\x06proto3"
+	"prediction\x18\x01 \x01(\x01R\n" +
+	"prediction\x12#\n" +
+	"\rmodel_version\x18\x02 \x01(\tR\fmodelVersion\"<\n" +
+	"\x10TransformRequest\x12(\n" +
+	"\x06events\x18\x01 \x03(\v2\x10.myservice.EventR\x06events\"A\n" +
+	"\x11TransformResponse\x12,\n" +
+	"\bfeatures\x18\x01 \x03(\v2\x10.myservice.EventR\bfeatures\"S\n" +
+	"\x10InferenceRequest\x12\x1a\n" +
+	"\bfeatures\x18\x01 \x03(\x01R\bfeatures\x12#\n" +
+	"\rmodel_version\x18\x02 \x01(\tR\fmodelVersion\"3\n" +
+	"\x11InferenceResponse\x12\x1e\n" +
+	"\n" +
+	"prediction\x18\x01 \x01(\x01R\n" +
+	"prediction\"T\n" +
+	"\fDriftRequest\x12#\n" +
+	"\rmodel_version\x18\x01 \x01(\tR\fmodelVersion\x12\x1f\n" +
+	"\vtime_window\x18\x02 \x01(\tR\n" +
+	"timeWindow\"\xdb\x01\n" +
+	"\rDriftResponse\x12\x1f\n" +
+	"\vdrift_score\x18\x01 \x01(\x01R\n" +
+	"driftScore\x12b\n" +
+	"\x14feature_drift_scores\x18\x02 \x03(\v20.myservice.DriftResponse.FeatureDriftScoresEntryR\x12featureDriftScores\x1aE\n" +
+	"\x17FeatureDriftScoresEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x01R\x05value:\x028\x01\"]\n" +
+	"\fTrainRequest\x12\x1d\n" +
+	"\n" +
+	"model_name\x18\x01 \x01(\tR\tmodelName\x12.\n" +
+	"\x13training_data_range\x18\x02 \x01(\tR\x11trainingDataRange\"q\n" +
+	"\rTrainResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12*\n" +
+	"\x11new_model_version\x18\x02 \x01(\tR\x0fnewModelVersion\x12\x1a\n" +
+	"\baccuracy\x18\x03 \x01(\x01R\baccuracy\"\xab\x01\n" +
+	"\x11TriggerJobRequest\x12\x19\n" +
+	"\bjob_type\x18\x01 \x01(\tR\ajobType\x12@\n" +
+	"\x06params\x18\x02 \x03(\v2(.myservice.TriggerJobRequest.ParamsEntryR\x06params\x1a9\n" +
+	"\vParamsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"C\n" +
+	"\x12TriggerJobResponse\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status2\x96\x01\n" +
+	"\fFeatureStore\x12E\n" +
+	"\fIngestEvents\x12\x18.myservice.IngestRequest\x1a\x19.myservice.IngestResponse\"\x00\x12?\n" +
+	"\n" +
+	"UploadFile\x12\x14.myservice.FileChunk\x1a\x17.myservice.UploadStatus\"\x00(\x012R\n" +
+	"\fModelServing\x12B\n" +
+	"\aPredict\x12\x19.myservice.PredictRequest\x1a\x1a.myservice.PredictResponse\"\x002\xb7\x02\n" +
+	"\fPythonWorker\x12P\n" +
+	"\x11TransformFeatures\x12\x1b.myservice.TransformRequest\x1a\x1c.myservice.TransformResponse\"\x00\x12K\n" +
+	"\fRunInference\x12\x1b.myservice.InferenceRequest\x1a\x1c.myservice.InferenceResponse\"\x00\x12E\n" +
+	"\x0eCalculateDrift\x12\x17.myservice.DriftRequest\x1a\x18.myservice.DriftResponse\"\x00\x12A\n" +
+	"\n" +
+	"TrainModel\x12\x17.myservice.TrainRequest\x1a\x18.myservice.TrainResponse\"\x002[\n" +
+	"\fJobScheduler\x12K\n" +
+	"\n" +
+	"TriggerJob\x12\x1c.myservice.TriggerJobRequest\x1a\x1d.myservice.TriggerJobResponse\"\x00B\x0eZ\f./;myserviceb\x06proto3"
 
 var (
 	file_My_Service_proto_rawDescOnce sync.Once
@@ -136,19 +993,55 @@ func file_My_Service_proto_rawDescGZIP() []byte {
 	return file_My_Service_proto_rawDescData
 }
 
-var file_My_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_My_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_My_Service_proto_goTypes = []any{
-	(*HelloRequest)(nil), // 0: myservice.HelloRequest
-	(*HelloReply)(nil),   // 1: myservice.HelloReply
+	(*Event)(nil),              // 0: myservice.Event
+	(*IngestRequest)(nil),      // 1: myservice.IngestRequest
+	(*IngestResponse)(nil),     // 2: myservice.IngestResponse
+	(*FileChunk)(nil),          // 3: myservice.FileChunk
+	(*UploadStatus)(nil),       // 4: myservice.UploadStatus
+	(*PredictRequest)(nil),     // 5: myservice.PredictRequest
+	(*PredictResponse)(nil),    // 6: myservice.PredictResponse
+	(*TransformRequest)(nil),   // 7: myservice.TransformRequest
+	(*TransformResponse)(nil),  // 8: myservice.TransformResponse
+	(*InferenceRequest)(nil),   // 9: myservice.InferenceRequest
+	(*InferenceResponse)(nil),  // 10: myservice.InferenceResponse
+	(*DriftRequest)(nil),       // 11: myservice.DriftRequest
+	(*DriftResponse)(nil),      // 12: myservice.DriftResponse
+	(*TrainRequest)(nil),       // 13: myservice.TrainRequest
+	(*TrainResponse)(nil),      // 14: myservice.TrainResponse
+	(*TriggerJobRequest)(nil),  // 15: myservice.TriggerJobRequest
+	(*TriggerJobResponse)(nil), // 16: myservice.TriggerJobResponse
+	nil,                        // 17: myservice.DriftResponse.FeatureDriftScoresEntry
+	nil,                        // 18: myservice.TriggerJobRequest.ParamsEntry
 }
 var file_My_Service_proto_depIdxs = []int32{
-	0, // 0: myservice.MyService.SayHello:input_type -> myservice.HelloRequest
-	1, // 1: myservice.MyService.SayHello:output_type -> myservice.HelloReply
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: myservice.IngestRequest.events:type_name -> myservice.Event
+	0,  // 1: myservice.TransformRequest.events:type_name -> myservice.Event
+	0,  // 2: myservice.TransformResponse.features:type_name -> myservice.Event
+	17, // 3: myservice.DriftResponse.feature_drift_scores:type_name -> myservice.DriftResponse.FeatureDriftScoresEntry
+	18, // 4: myservice.TriggerJobRequest.params:type_name -> myservice.TriggerJobRequest.ParamsEntry
+	1,  // 5: myservice.FeatureStore.IngestEvents:input_type -> myservice.IngestRequest
+	3,  // 6: myservice.FeatureStore.UploadFile:input_type -> myservice.FileChunk
+	5,  // 7: myservice.ModelServing.Predict:input_type -> myservice.PredictRequest
+	7,  // 8: myservice.PythonWorker.TransformFeatures:input_type -> myservice.TransformRequest
+	9,  // 9: myservice.PythonWorker.RunInference:input_type -> myservice.InferenceRequest
+	11, // 10: myservice.PythonWorker.CalculateDrift:input_type -> myservice.DriftRequest
+	13, // 11: myservice.PythonWorker.TrainModel:input_type -> myservice.TrainRequest
+	15, // 12: myservice.JobScheduler.TriggerJob:input_type -> myservice.TriggerJobRequest
+	2,  // 13: myservice.FeatureStore.IngestEvents:output_type -> myservice.IngestResponse
+	4,  // 14: myservice.FeatureStore.UploadFile:output_type -> myservice.UploadStatus
+	6,  // 15: myservice.ModelServing.Predict:output_type -> myservice.PredictResponse
+	8,  // 16: myservice.PythonWorker.TransformFeatures:output_type -> myservice.TransformResponse
+	10, // 17: myservice.PythonWorker.RunInference:output_type -> myservice.InferenceResponse
+	12, // 18: myservice.PythonWorker.CalculateDrift:output_type -> myservice.DriftResponse
+	14, // 19: myservice.PythonWorker.TrainModel:output_type -> myservice.TrainResponse
+	16, // 20: myservice.JobScheduler.TriggerJob:output_type -> myservice.TriggerJobResponse
+	13, // [13:21] is the sub-list for method output_type
+	5,  // [5:13] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_My_Service_proto_init() }
@@ -162,9 +1055,9 @@ func file_My_Service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_My_Service_proto_rawDesc), len(file_My_Service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   19,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   4,
 		},
 		GoTypes:           file_My_Service_proto_goTypes,
 		DependencyIndexes: file_My_Service_proto_depIdxs,

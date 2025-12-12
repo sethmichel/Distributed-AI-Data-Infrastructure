@@ -1,7 +1,7 @@
 # my stuff to ignore
 venv/
 Design_Docs/Resume_Entry.md
-Configs/Env/
+Gobal_Configs/Env/
 
 
 # Byte-compiled / optimized / DLL files

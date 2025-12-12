@@ -129,6 +129,14 @@ SOLUTION:
 END OF THREADING CONSIDERATIONS ----------------------------------
 
 # OVERALL ISSUES
+1) Challenge: distributed system but in 1 node. how does it work?
+    - they won't share memory, so we can't use global variables between them (this would also cause race conditions)
+    - I'm going to make a services folder with 4 main.go files, and a bash script to run all of them. the idea is services doing nothing are idoling and taking no resources.
+    - I can use redis for store things like pyhton work jobs, and the number of jobs labeled "in progress" = the number of active python workers, so we can use that number to decide if should use more resources to make more workers.
+        - app.yaml has max workers
+    - make the redis scanning script in a parent dir of all services so they access it
+
+
 - how do I restart/restore that data for failed python workers?
     - my doctor thread habit won't work since this is a distributed system
     - SOLUTION: don't restore data state, just restart the worker with the same request. if a worker hangs and doesn't crash, then my workers can use the check() gRPC method every 5 seconds which I guess will tell me if they're stuck. I guess this means if a worker doesn't check in every 5 seconds then I assume it's stuck
@@ -592,3 +600,12 @@ Details
 - write the config/controller files. like the code that handles the duckdb writes, the go routines, python threads, restoreing broken python threads...
 
 - write each service one by one
+
+
+
+# optional later features
+1) this does not give weights to jobs. so service D training might use all workers which is the lowest priority. service A should be able to stop some service D workers for example so I can work the bulk of the platform
+
+2) c++ memory management layer
+    - goals: more experience with c++
+    - stuff like this benifits a lot from memory managment at scale

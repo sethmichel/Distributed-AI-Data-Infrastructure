@@ -3,19 +3,122 @@ syntax = "proto3";
 package myservice;
 option go_package = "./;myservice";
 
-// The service definition.
-service MyService {
-  // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
+// --- Service A: Feature Store ---
+service FeatureStore {
+  // Ingest batch data (e.g., from file uploads)
+  rpc IngestEvents (IngestRequest) returns (IngestResponse) {}
+  
+  // File upload capability (chunks for large files)
+  rpc UploadFile (stream FileChunk) returns (UploadStatus) {}
 }
 
-// The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
+message Event {
+  string entity_id = 1;
+  string feature_name = 2;
+  double value = 3;
+  string timestamp = 4; // ISO string
 }
 
-// The response message containing the greetings.
-message HelloReply {
-  string message = 1;
+message IngestRequest {
+  repeated Event events = 1;
 }
 
+message IngestResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message FileChunk {
+  bytes content = 1;
+  string filename = 2;
+}
+
+message UploadStatus {
+  bool success = 1;
+  string message = 2;
+}
+
+// --- Service B: Model Serving ---
+service ModelServing {
+  // Client calls this to get a prediction
+  rpc Predict (PredictRequest) returns (PredictResponse) {}
+}
+
+message PredictRequest {
+  string user_id = 1;
+  string model_version = 2;
+}
+
+message PredictResponse {
+  double prediction = 1;
+  string model_version = 2;
+}
+
+// --- Internal Python Worker Interface ---
+// Used by Service A (Transformation) and Service B (Inference)
+service PythonWorker {
+  // Service A calls this to transform raw data
+  rpc TransformFeatures (TransformRequest) returns (TransformResponse) {}
+  
+  // Service B calls this to run inference
+  rpc RunInference (InferenceRequest) returns (InferenceResponse) {}
+  
+  // Service C calls this for drift calculation
+  rpc CalculateDrift (DriftRequest) returns (DriftResponse) {}
+  
+  // Service D calls this for training
+  rpc TrainModel (TrainRequest) returns (TrainResponse) {}
+}
+
+message TransformRequest {
+  repeated Event events = 1;
+}
+
+message TransformResponse {
+  repeated Event features = 1;
+}
+
+message InferenceRequest {
+  repeated double features = 1; // Vectorized features
+  string model_version = 2;
+}
+
+message InferenceResponse {
+  double prediction = 1;
+}
+
+message DriftRequest {
+  string model_version = 1;
+  string time_window = 2; // e.g. "24h"
+}
+
+message DriftResponse {
+  double drift_score = 1;
+  map<string, double> feature_drift_scores = 2;
+}
+
+message TrainRequest {
+  string model_name = 1;
+  string training_data_range = 2;
+}
+
+message TrainResponse {
+  bool success = 1;
+  string new_model_version = 2;
+  double accuracy = 3;
+}
+
+// --- Service D: Job Scheduler ---
+service JobScheduler {
+  rpc TriggerJob (TriggerJobRequest) returns (TriggerJobResponse) {}
+}
+
+message TriggerJobRequest {
+    string job_type = 1; // e.g., "Retrain", "DriftCheck"
+    map<string, string> params = 2;
+}
+
+message TriggerJobResponse {
+    string job_id = 1;
+    string status = 2;
+}

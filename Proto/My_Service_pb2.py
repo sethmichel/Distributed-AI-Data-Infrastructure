@@ -24,17 +24,62 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10My_Service.proto\x12\tmyservice\"\x1c\n\x0cHelloRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1d\n\nHelloReply\x12\x0f\n\x07message\x18\x01 \x01(\t2I\n\tMyService\x12<\n\x08SayHello\x12\x17.myservice.HelloRequest\x1a\x15.myservice.HelloReply\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10My_Service.proto\x12\tmyservice\"R\n\x05\x45vent\x12\x11\n\tentity_id\x18\x01 \x01(\t\x12\x14\n\x0c\x66\x65\x61ture_name\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\x01\x12\x11\n\ttimestamp\x18\x04 \x01(\t\"1\n\rIngestRequest\x12 \n\x06\x65vents\x18\x01 \x03(\x0b\x32\x10.myservice.Event\"2\n\x0eIngestResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\".\n\tFileChunk\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\x0c\x12\x10\n\x08\x66ilename\x18\x02 \x01(\t\"0\n\x0cUploadStatus\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"8\n\x0ePredictRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x15\n\rmodel_version\x18\x02 \x01(\t\"<\n\x0fPredictResponse\x12\x12\n\nprediction\x18\x01 \x01(\x01\x12\x15\n\rmodel_version\x18\x02 \x01(\t\"4\n\x10TransformRequest\x12 \n\x06\x65vents\x18\x01 \x03(\x0b\x32\x10.myservice.Event\"7\n\x11TransformResponse\x12\"\n\x08\x66\x65\x61tures\x18\x01 \x03(\x0b\x32\x10.myservice.Event\";\n\x10InferenceRequest\x12\x10\n\x08\x66\x65\x61tures\x18\x01 \x03(\x01\x12\x15\n\rmodel_version\x18\x02 \x01(\t\"\'\n\x11InferenceResponse\x12\x12\n\nprediction\x18\x01 \x01(\x01\":\n\x0c\x44riftRequest\x12\x15\n\rmodel_version\x18\x01 \x01(\t\x12\x13\n\x0btime_window\x18\x02 \x01(\t\"\xaf\x01\n\rDriftResponse\x12\x13\n\x0b\x64rift_score\x18\x01 \x01(\x01\x12N\n\x14\x66\x65\x61ture_drift_scores\x18\x02 \x03(\x0b\x32\x30.myservice.DriftResponse.FeatureDriftScoresEntry\x1a\x39\n\x17\x46\x65\x61tureDriftScoresEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01:\x02\x38\x01\"?\n\x0cTrainRequest\x12\x12\n\nmodel_name\x18\x01 \x01(\t\x12\x1b\n\x13training_data_range\x18\x02 \x01(\t\"M\n\rTrainResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x19\n\x11new_model_version\x18\x02 \x01(\t\x12\x10\n\x08\x61\x63\x63uracy\x18\x03 \x01(\x01\"\x8e\x01\n\x11TriggerJobRequest\x12\x10\n\x08job_type\x18\x01 \x01(\t\x12\x38\n\x06params\x18\x02 \x03(\x0b\x32(.myservice.TriggerJobRequest.ParamsEntry\x1a-\n\x0bParamsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"4\n\x12TriggerJobResponse\x12\x0e\n\x06job_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t2\x96\x01\n\x0c\x46\x65\x61tureStore\x12\x45\n\x0cIngestEvents\x12\x18.myservice.IngestRequest\x1a\x19.myservice.IngestResponse\"\x00\x12?\n\nUploadFile\x12\x14.myservice.FileChunk\x1a\x17.myservice.UploadStatus\"\x00(\x01\x32R\n\x0cModelServing\x12\x42\n\x07Predict\x12\x19.myservice.PredictRequest\x1a\x1a.myservice.PredictResponse\"\x00\x32\xb7\x02\n\x0cPythonWorker\x12P\n\x11TransformFeatures\x12\x1b.myservice.TransformRequest\x1a\x1c.myservice.TransformResponse\"\x00\x12K\n\x0cRunInference\x12\x1b.myservice.InferenceRequest\x1a\x1c.myservice.InferenceResponse\"\x00\x12\x45\n\x0e\x43\x61lculateDrift\x12\x17.myservice.DriftRequest\x1a\x18.myservice.DriftResponse\"\x00\x12\x41\n\nTrainModel\x12\x17.myservice.TrainRequest\x1a\x18.myservice.TrainResponse\"\x00\x32[\n\x0cJobScheduler\x12K\n\nTriggerJob\x12\x1c.myservice.TriggerJobRequest\x1a\x1d.myservice.TriggerJobResponse\"\x00\x42\x0eZ\x0c./;myserviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'My_Service_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-  DESCRIPTOR._loaded_options = None
-  _globals['_HELLOREQUEST']._serialized_start=31
-  _globals['_HELLOREQUEST']._serialized_end=59
-  _globals['_HELLOREPLY']._serialized_start=61
-  _globals['_HELLOREPLY']._serialized_end=90
-  _globals['_MYSERVICE']._serialized_start=92
-  _globals['_MYSERVICE']._serialized_end=165
+  _globals['DESCRIPTOR']._loaded_options = None
+  _globals['DESCRIPTOR']._serialized_options = b'Z\014./;myservice'
+  _globals['_DRIFTRESPONSE_FEATUREDRIFTSCORESENTRY']._loaded_options = None
+  _globals['_DRIFTRESPONSE_FEATUREDRIFTSCORESENTRY']._serialized_options = b'8\001'
+  _globals['_TRIGGERJOBREQUEST_PARAMSENTRY']._loaded_options = None
+  _globals['_TRIGGERJOBREQUEST_PARAMSENTRY']._serialized_options = b'8\001'
+  _globals['_EVENT']._serialized_start=31
+  _globals['_EVENT']._serialized_end=113
+  _globals['_INGESTREQUEST']._serialized_start=115
+  _globals['_INGESTREQUEST']._serialized_end=164
+  _globals['_INGESTRESPONSE']._serialized_start=166
+  _globals['_INGESTRESPONSE']._serialized_end=216
+  _globals['_FILECHUNK']._serialized_start=218
+  _globals['_FILECHUNK']._serialized_end=264
+  _globals['_UPLOADSTATUS']._serialized_start=266
+  _globals['_UPLOADSTATUS']._serialized_end=314
+  _globals['_PREDICTREQUEST']._serialized_start=316
+  _globals['_PREDICTREQUEST']._serialized_end=372
+  _globals['_PREDICTRESPONSE']._serialized_start=374
+  _globals['_PREDICTRESPONSE']._serialized_end=434
+  _globals['_TRANSFORMREQUEST']._serialized_start=436
+  _globals['_TRANSFORMREQUEST']._serialized_end=488
+  _globals['_TRANSFORMRESPONSE']._serialized_start=490
+  _globals['_TRANSFORMRESPONSE']._serialized_end=545
+  _globals['_INFERENCEREQUEST']._serialized_start=547
+  _globals['_INFERENCEREQUEST']._serialized_end=606
+  _globals['_INFERENCERESPONSE']._serialized_start=608
+  _globals['_INFERENCERESPONSE']._serialized_end=647
+  _globals['_DRIFTREQUEST']._serialized_start=649
+  _globals['_DRIFTREQUEST']._serialized_end=707
+  _globals['_DRIFTRESPONSE']._serialized_start=710
+  _globals['_DRIFTRESPONSE']._serialized_end=885
+  _globals['_DRIFTRESPONSE_FEATUREDRIFTSCORESENTRY']._serialized_start=828
+  _globals['_DRIFTRESPONSE_FEATUREDRIFTSCORESENTRY']._serialized_end=885
+  _globals['_TRAINREQUEST']._serialized_start=887
+  _globals['_TRAINREQUEST']._serialized_end=950
+  _globals['_TRAINRESPONSE']._serialized_start=952
+  _globals['_TRAINRESPONSE']._serialized_end=1029
+  _globals['_TRIGGERJOBREQUEST']._serialized_start=1032
+  _globals['_TRIGGERJOBREQUEST']._serialized_end=1174
+  _globals['_TRIGGERJOBREQUEST_PARAMSENTRY']._serialized_start=1129
+  _globals['_TRIGGERJOBREQUEST_PARAMSENTRY']._serialized_end=1174
+  _globals['_TRIGGERJOBRESPONSE']._serialized_start=1176
+  _globals['_TRIGGERJOBRESPONSE']._serialized_end=1228
+  _globals['_FEATURESTORE']._serialized_start=1231
+  _globals['_FEATURESTORE']._serialized_end=1381
+  _globals['_MODELSERVING']._serialized_start=1383
+  _globals['_MODELSERVING']._serialized_end=1465
+  _globals['_PYTHONWORKER']._serialized_start=1468
+  _globals['_PYTHONWORKER']._serialized_end=1779
+  _globals['_JOBSCHEDULER']._serialized_start=1781
+  _globals['_JOBSCHEDULER']._serialized_end=1872
 # @@protoc_insertion_point(module_scope)

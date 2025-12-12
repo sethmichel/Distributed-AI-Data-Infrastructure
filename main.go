@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	config "ai_infra_project/Configs"
+	config "ai_infra_project/Global_Configs"
 )
 
 func main() {
