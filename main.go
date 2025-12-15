@@ -20,5 +20,10 @@ func main() {
 		log.Fatalf("DuckDB check failed: %v", err)
 	}
 
+	// 3. Check Kafka
+	if err := CheckKafka(app_config_struct); err != nil {
+		log.Fatalf("Kafka check failed: %v", err)
+	}
+
 	log.Println("All system checks completed successfully.")
 }

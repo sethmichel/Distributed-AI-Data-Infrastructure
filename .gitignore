@@ -1,6 +1,7 @@
 # my stuff to ignore
 venv/
 Design_Docs/Resume_Entry.md
+Design_Docs/SECRETS.txt
 Gobal_Configs/Env/
 
 

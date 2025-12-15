@@ -20,8 +20,9 @@ type App_Config struct {
 	} `yaml:"workers"`
 
 	Paths struct {
-		AzurePath  string `yaml:"azure_path"`
-		ModelCache string `yaml:"model_cache"`
+		AzurePath       string `yaml:"azure_path"`
+		ModelCache      string `yaml:"model_cache"`
+		KafkaInstallDir string `yaml:"kafka_install_dir"`
 	} `yaml:"paths"`
 
 	Drift struct {
@@ -33,6 +34,8 @@ type App_Config struct {
 		RedisAddr          string `yaml:"redis_addr"`
 		AzureConn          string `yaml:"azure_conn"`
 		AzureContainerName string `yaml:"azure_container_name"`
+		KafkaAddr          string `yaml:"kafka_addr"`
+		KafkaTopic         string `yaml:"kafka_topic"`
 	} `yaml:"connections"`
 }
 
