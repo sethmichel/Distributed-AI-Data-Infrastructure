@@ -1,4 +1,23 @@
-Get kafka to work, send data to the engine, test the file thing on grpc
+duckdb schema
+    CREATE TABLE features (
+        entity_id text,            -- "user_123"
+        feature_name text,         -- "click_count_7d"
+        value DOUBLE,              -- 42.0
+        event_timestamp TIMESTAMP, -- When the event actually happened
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP      -- When your system processed it
+    );
+
+redis schema
+- just the most recent value of each feature with a timestamp. otherwise we don't know if a value is 1 day vs 1 week old
+
+kafka setup
+- batchsize is 5
+- flushinterval is 2
+- it'll send a batch when it reaches batchsize or the timer finishes
+
+BUGS:
+- transformer_engine.go
+    - In the loop where I send data to duckdb, if one single insert fails (e.g., bad data), I log it and continue.
 
 files
     - data generation (go)
@@ -84,6 +103,15 @@ vocab:
     - partition
         - a folder inside of a drawer. so data needs to choose a topic to go into (drawer), then pick a folder to go into (partition). unlike topics which are just names, a partition is where the data lives on disk
         - it's a subsection of a server/broker
+
+Best practice note
+- at least once pattern
+    - kafka keeps a pointer (called 'offset") of the last message my consumer finishes. if I don't commit then then if I crash and restart kafka will send the same data again. if I commit early before writing to the db's, and crash, I lose the data forever. this is a "at least once" pattern. the cost is 1 network request to kafka; but since we're batching it's not that bad
+
+Confusing bits about kafka
+    - kafka is famously hard to use
+    - during setup you'll likely see errors, but you can likely ignore them. it gives errors for tons of stuff because there's so many config options
+    - on startup, it produces a ton of logs. you can't make sense of them all. it's logs for kafka's internals, not your program. for example, if you use a 1 partition system, you'll see startup logs refernceing partition 17 and 51 - those are fine, they're internal
 
 Example ideal kafka setup
     - Generate 3 brokers (servers) (a,b,c). broker a gets the data, it copies that data to broker b and c. thus if broker a breaks, broker b takes over, etc.

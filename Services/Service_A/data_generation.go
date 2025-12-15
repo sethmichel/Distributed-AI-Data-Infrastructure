@@ -1,4 +1,4 @@
-package main
+package service_a
 
 import (
 	"context"
@@ -30,13 +30,7 @@ type FeatureData struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-func main() {
-	// Load Configuration
-	app_config_struct, err := config.LoadConfig()
-	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
-	}
-
+func Start(app_config_struct *config.App_Config) {
 	// Initialize Kafka writer
 	writer := &kafka.Writer{
 		Addr:     kafka.TCP(app_config_struct.Connections.KafkaAddr),
@@ -54,8 +48,7 @@ func main() {
 	// Start gRPC upload routine
 	go runGrpcUploader()
 
-	// Keep the main function running. since main() is go's master function, when it ends the program / routines end.
-	// select {} means block forever. it pauses main() until I manually stop the program
+	// Keep the function running so the writer stays open
 	select {}
 }
 

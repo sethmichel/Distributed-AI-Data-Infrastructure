@@ -31,34 +31,28 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 		}
 	}
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		log.Printf("DuckDB file not found at %s. Creating...", path)
-
-		// Connect to create file and table
-		db, err := sql.Open("duckdb", path)
-		if err != nil {
-			return fmt.Errorf("failed to open duckdb: %w", err)
-		}
-		defer db.Close()
-
-		// Create table
-		// event timestamp: When the event actually happened
-		query := `
-            CREATE TABLE IF NOT EXISTS features (
-                entity_id TEXT,
-                feature_name TEXT,
-                value DOUBLE,
-                event_timestamp TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );`
-
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to create Prices table: %w", err)
-		}
-		log.Println("DuckDB initialized successfully with Prices table.")
-	} else {
-		log.Printf("DuckDB file found at %s.", path)
+	// connect to ensure table exists
+	db, err := sql.Open("duckdb", path)
+	if err != nil {
+		return fmt.Errorf("failed to open duckdb: %w", err)
 	}
+	defer db.Close()
+
+	// Create table
+	// event timestamp: When the event actually happened
+	query := `
+		CREATE TABLE IF NOT EXISTS features (
+			entity_id TEXT,
+			feature_name TEXT,
+			value DOUBLE,
+			event_timestamp TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`
+
+	if _, err := db.Exec(query); err != nil {
+		return fmt.Errorf("failed to create features table: %w", err)
+	}
+	log.Printf("DuckDB initialized successfully (table checked) at %s.", path)
 
 	return nil
 }
@@ -85,9 +79,11 @@ func CheckKafka(app_config_struct *config.App_Config) error {
 		DualStack: true,
 	}
 
-	conn, err := dialer.Dial("tcp", brokerAddress)
+	// Try tcp4 first to force IPv4
+	// this tries to avoid a windows problems where localhost gets resolved to ipv6 x, but kafka is listening to ipv4 y
+	conn, err := dialer.Dial("tcp4", brokerAddress)
 	if err != nil {
-		log.Printf("Failed to connect to Kafka at %s: %v. Attempting to start it...", brokerAddress, err)
+		log.Printf("Failed to connect to Kafka at %s (IPv4): %v. Attempting to start it...", brokerAddress, err)
 
 		kafkaDir := app_config_struct.Paths.KafkaInstallDir
 		if kafkaDir == "" {
@@ -105,13 +101,21 @@ func CheckKafka(app_config_struct *config.App_Config) error {
 			return fmt.Errorf("failed to start Kafka: %w", err)
 		}
 
-		log.Println("Kafka start command issued. Waiting 5 seconds for it to initialize...")
-		time.Sleep(5 * time.Second)
+		log.Println("Kafka start command issued. Waiting for it to initialize (up to 60s)...")
 
-		// Retry connection
-		conn, err = dialer.Dial("tcp", brokerAddress)
-		if err != nil {
-			return fmt.Errorf("ERROR: kafka wasn't running and our start command failed %w", err)
+		// Retry connection in a loop
+		connected := false
+		for i := 0; i < 30; i++ {
+			time.Sleep(2 * time.Second)
+			conn, err = dialer.Dial("tcp4", brokerAddress)
+			if err == nil {
+				connected = true
+				break
+			}
+		}
+
+		if !connected {
+			return fmt.Errorf("ERROR: kafka wasn't running and our start command failed (or timed out) %w", err)
 		}
 		log.Println("Successfully connected to Kafka after startup.")
 	}
@@ -125,5 +129,68 @@ func CheckKafka(app_config_struct *config.App_Config) error {
 
 	log.Printf("Kafka is running. Found %d partitions across all topics.", len(partitions))
 
+	return nil
+}
+
+// Check/start Docker containers for Prometheus, Grafana, Redis
+// telling docker to start over and over while it's already up doesn't do anything bad
+func StartDockerServices() error {
+	cmd := exec.Command("docker", "compose", "-f", "Global_Configs/docker-compose.yml", "up", "-d")
+
+	log.Println("Starting Docker services (Redis, Prometheus, Grafana)...")
+
+	// use these variable if I want debug output in my terminal
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to start docker services: %w", err)
+	}
+
+	log.Println("Docker services started successfully.")
+	return nil
+}
+
+// Stop Docker containers for Prometheus, Grafana, Redis
+func StopDockerServices() error {
+	log.Println("Stopping Docker services...")
+
+	cmd := exec.Command("docker", "compose", "-f", "Global_Configs/docker-compose.yml", "down")
+
+	// Inherit stdout/stderr for visibility
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to stop docker services: %w", err)
+	}
+
+	log.Println("Docker services stopped successfully.")
+	return nil
+}
+
+// shut down the Kafka server when the program ends. (this is called when the program ends)
+// we use the stop script included with kafka
+func StopKafka(app_config_struct *config.App_Config) error {
+	kafkaDir := app_config_struct.Paths.KafkaInstallDir
+	if kafkaDir == "" {
+		return fmt.Errorf("kafka_install_dir not configured")
+	}
+
+	cmdPath := filepath.Join(kafkaDir, "bin", "windows", "kafka-server-stop.bat")
+
+	// Check if the script exists
+	if _, err := os.Stat(cmdPath); os.IsNotExist(err) {
+		return fmt.Errorf("stop script not found at %s", cmdPath)
+	}
+
+	log.Println("Stopping Kafka server...")
+
+	cmd := exec.Command(cmdPath)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to stop Kafka: %v, output: %s", err, string(output))
+	}
+
+	log.Println("Kafka stop command issued.")
 	return nil
 }
