@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: My_Service.proto
+// source: Proto/My_Service.proto
 
 package myservice
 
@@ -19,8 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	FeatureStore_IngestEvents_FullMethodName = "/myservice.FeatureStore/IngestEvents"
-	FeatureStore_UploadFile_FullMethodName   = "/myservice.FeatureStore/UploadFile"
+	FeatureStore_UploadFile_FullMethodName = "/myservice.FeatureStore/UploadFile"
 )
 
 // FeatureStoreClient is the client API for FeatureStore service.
@@ -29,8 +28,6 @@ const (
 //
 // --- Service A: Feature Store ---
 type FeatureStoreClient interface {
-	// Ingest batch data (e.g., from file uploads)
-	IngestEvents(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*IngestResponse, error)
 	// File upload capability (chunks for large files)
 	UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FileChunk, UploadStatus], error)
 }
@@ -41,16 +38,6 @@ type featureStoreClient struct {
 
 func NewFeatureStoreClient(cc grpc.ClientConnInterface) FeatureStoreClient {
 	return &featureStoreClient{cc}
-}
-
-func (c *featureStoreClient) IngestEvents(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*IngestResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(IngestResponse)
-	err := c.cc.Invoke(ctx, FeatureStore_IngestEvents_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *featureStoreClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FileChunk, UploadStatus], error) {
@@ -72,8 +59,6 @@ type FeatureStore_UploadFileClient = grpc.ClientStreamingClient[FileChunk, Uploa
 //
 // --- Service A: Feature Store ---
 type FeatureStoreServer interface {
-	// Ingest batch data (e.g., from file uploads)
-	IngestEvents(context.Context, *IngestRequest) (*IngestResponse, error)
 	// File upload capability (chunks for large files)
 	UploadFile(grpc.ClientStreamingServer[FileChunk, UploadStatus]) error
 	mustEmbedUnimplementedFeatureStoreServer()
@@ -86,9 +71,6 @@ type FeatureStoreServer interface {
 // pointer dereference when methods are called.
 type UnimplementedFeatureStoreServer struct{}
 
-func (UnimplementedFeatureStoreServer) IngestEvents(context.Context, *IngestRequest) (*IngestResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method IngestEvents not implemented")
-}
 func (UnimplementedFeatureStoreServer) UploadFile(grpc.ClientStreamingServer[FileChunk, UploadStatus]) error {
 	return status.Error(codes.Unimplemented, "method UploadFile not implemented")
 }
@@ -113,24 +95,6 @@ func RegisterFeatureStoreServer(s grpc.ServiceRegistrar, srv FeatureStoreServer)
 	s.RegisterService(&FeatureStore_ServiceDesc, srv)
 }
 
-func _FeatureStore_IngestEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IngestRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FeatureStoreServer).IngestEvents(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: FeatureStore_IngestEvents_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FeatureStoreServer).IngestEvents(ctx, req.(*IngestRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _FeatureStore_UploadFile_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(FeatureStoreServer).UploadFile(&grpc.GenericServerStream[FileChunk, UploadStatus]{ServerStream: stream})
 }
@@ -144,12 +108,7 @@ type FeatureStore_UploadFileServer = grpc.ClientStreamingServer[FileChunk, Uploa
 var FeatureStore_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "myservice.FeatureStore",
 	HandlerType: (*FeatureStoreServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "IngestEvents",
-			Handler:    _FeatureStore_IngestEvents_Handler,
-		},
-	},
+	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "UploadFile",
@@ -157,7 +116,7 @@ var FeatureStore_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "My_Service.proto",
+	Metadata: "Proto/My_Service.proto",
 }
 
 const (
@@ -265,7 +224,113 @@ var ModelServing_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "My_Service.proto",
+	Metadata: "Proto/My_Service.proto",
+}
+
+const (
+	JobScheduler_TriggerJob_FullMethodName = "/myservice.JobScheduler/TriggerJob"
+)
+
+// JobSchedulerClient is the client API for JobScheduler service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// --- Service D: Job Scheduler ---
+type JobSchedulerClient interface {
+	TriggerJob(ctx context.Context, in *TriggerJobRequest, opts ...grpc.CallOption) (*TriggerJobResponse, error)
+}
+
+type jobSchedulerClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewJobSchedulerClient(cc grpc.ClientConnInterface) JobSchedulerClient {
+	return &jobSchedulerClient{cc}
+}
+
+func (c *jobSchedulerClient) TriggerJob(ctx context.Context, in *TriggerJobRequest, opts ...grpc.CallOption) (*TriggerJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TriggerJobResponse)
+	err := c.cc.Invoke(ctx, JobScheduler_TriggerJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// JobSchedulerServer is the server API for JobScheduler service.
+// All implementations must embed UnimplementedJobSchedulerServer
+// for forward compatibility.
+//
+// --- Service D: Job Scheduler ---
+type JobSchedulerServer interface {
+	TriggerJob(context.Context, *TriggerJobRequest) (*TriggerJobResponse, error)
+	mustEmbedUnimplementedJobSchedulerServer()
+}
+
+// UnimplementedJobSchedulerServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedJobSchedulerServer struct{}
+
+func (UnimplementedJobSchedulerServer) TriggerJob(context.Context, *TriggerJobRequest) (*TriggerJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TriggerJob not implemented")
+}
+func (UnimplementedJobSchedulerServer) mustEmbedUnimplementedJobSchedulerServer() {}
+func (UnimplementedJobSchedulerServer) testEmbeddedByValue()                      {}
+
+// UnsafeJobSchedulerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to JobSchedulerServer will
+// result in compilation errors.
+type UnsafeJobSchedulerServer interface {
+	mustEmbedUnimplementedJobSchedulerServer()
+}
+
+func RegisterJobSchedulerServer(s grpc.ServiceRegistrar, srv JobSchedulerServer) {
+	// If the following call panics, it indicates UnimplementedJobSchedulerServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&JobScheduler_ServiceDesc, srv)
+}
+
+func _JobScheduler_TriggerJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TriggerJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobSchedulerServer).TriggerJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: JobScheduler_TriggerJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobSchedulerServer).TriggerJob(ctx, req.(*TriggerJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// JobScheduler_ServiceDesc is the grpc.ServiceDesc for JobScheduler service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var JobScheduler_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "myservice.JobScheduler",
+	HandlerType: (*JobSchedulerServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "TriggerJob",
+			Handler:    _JobScheduler_TriggerJob_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "Proto/My_Service.proto",
 }
 
 const (
@@ -495,111 +560,5 @@ var PythonWorker_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "My_Service.proto",
-}
-
-const (
-	JobScheduler_TriggerJob_FullMethodName = "/myservice.JobScheduler/TriggerJob"
-)
-
-// JobSchedulerClient is the client API for JobScheduler service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-//
-// --- Service D: Job Scheduler ---
-type JobSchedulerClient interface {
-	TriggerJob(ctx context.Context, in *TriggerJobRequest, opts ...grpc.CallOption) (*TriggerJobResponse, error)
-}
-
-type jobSchedulerClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewJobSchedulerClient(cc grpc.ClientConnInterface) JobSchedulerClient {
-	return &jobSchedulerClient{cc}
-}
-
-func (c *jobSchedulerClient) TriggerJob(ctx context.Context, in *TriggerJobRequest, opts ...grpc.CallOption) (*TriggerJobResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(TriggerJobResponse)
-	err := c.cc.Invoke(ctx, JobScheduler_TriggerJob_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// JobSchedulerServer is the server API for JobScheduler service.
-// All implementations must embed UnimplementedJobSchedulerServer
-// for forward compatibility.
-//
-// --- Service D: Job Scheduler ---
-type JobSchedulerServer interface {
-	TriggerJob(context.Context, *TriggerJobRequest) (*TriggerJobResponse, error)
-	mustEmbedUnimplementedJobSchedulerServer()
-}
-
-// UnimplementedJobSchedulerServer must be embedded to have
-// forward compatible implementations.
-//
-// NOTE: this should be embedded by value instead of pointer to avoid a nil
-// pointer dereference when methods are called.
-type UnimplementedJobSchedulerServer struct{}
-
-func (UnimplementedJobSchedulerServer) TriggerJob(context.Context, *TriggerJobRequest) (*TriggerJobResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method TriggerJob not implemented")
-}
-func (UnimplementedJobSchedulerServer) mustEmbedUnimplementedJobSchedulerServer() {}
-func (UnimplementedJobSchedulerServer) testEmbeddedByValue()                      {}
-
-// UnsafeJobSchedulerServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to JobSchedulerServer will
-// result in compilation errors.
-type UnsafeJobSchedulerServer interface {
-	mustEmbedUnimplementedJobSchedulerServer()
-}
-
-func RegisterJobSchedulerServer(s grpc.ServiceRegistrar, srv JobSchedulerServer) {
-	// If the following call panics, it indicates UnimplementedJobSchedulerServer was
-	// embedded by pointer and is nil.  This will cause panics if an
-	// unimplemented method is ever invoked, so we test this at initialization
-	// time to prevent it from happening at runtime later due to I/O.
-	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
-		t.testEmbeddedByValue()
-	}
-	s.RegisterService(&JobScheduler_ServiceDesc, srv)
-}
-
-func _JobScheduler_TriggerJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TriggerJobRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(JobSchedulerServer).TriggerJob(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: JobScheduler_TriggerJob_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(JobSchedulerServer).TriggerJob(ctx, req.(*TriggerJobRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// JobScheduler_ServiceDesc is the grpc.ServiceDesc for JobScheduler service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var JobScheduler_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "myservice.JobScheduler",
-	HandlerType: (*JobSchedulerServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "TriggerJob",
-			Handler:    _JobScheduler_TriggerJob_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "My_Service.proto",
+	Metadata: "Proto/My_Service.proto",
 }

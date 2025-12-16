@@ -70,7 +70,7 @@ duck db
 - this gets downloaded from online, ideally saved right on your C drive and not program files. 
 - tutorials are all mixed up because old kafka used zookeeper, then in 3.x the user could choose btw zookeeper or kraft, now in 4.x it's kraft by default and so misc folders are gone.
 
-strengths
+**strengths**
     - a good distributed streaming service. not a "mailbox" but rather a "logbook"
     - high throughput (millions/second)
     - scability: easy to expand. if the load gets too high, we just add another server (broker) to the group and kafka CAN load balance (I have to set it up)
@@ -78,13 +78,13 @@ strengths
     - transfers data as bytes
     - data in partitions has strict ordering. it's ordered by like the user id whatever key we set
 
-weaknesses
+**weaknesses**
     - complex. rabbitMQ and redis pub/sub are easier
     - latency: it's fast but not real time fast. it's good at high throughput, but has some lag
     - total overkill for small data (too many resources)
     - data order: it guarantees message order only per partition, not across the topic
 
-vocab:
+**vocab**
     - data UUID
         - it's a unique label to id the data. it's 128 bits so it's a really chance anyone ever generates the same uuid
         - these usually get attached to a message as a key or header so we can track it through microservices
@@ -104,16 +104,16 @@ vocab:
         - a folder inside of a drawer. so data needs to choose a topic to go into (drawer), then pick a folder to go into (partition). unlike topics which are just names, a partition is where the data lives on disk
         - it's a subsection of a server/broker
 
-Best practice note
+**Best practice note**
 - at least once pattern
     - kafka keeps a pointer (called 'offset") of the last message my consumer finishes. if I don't commit then then if I crash and restart kafka will send the same data again. if I commit early before writing to the db's, and crash, I lose the data forever. this is a "at least once" pattern. the cost is 1 network request to kafka; but since we're batching it's not that bad
 
-Confusing bits about kafka
+**Confusing bits about kafka**
     - kafka is famously hard to use
     - during setup you'll likely see errors, but you can likely ignore them. it gives errors for tons of stuff because there's so many config options
     - on startup, it produces a ton of logs. you can't make sense of them all. it's logs for kafka's internals, not your program. for example, if you use a 1 partition system, you'll see startup logs refernceing partition 17 and 51 - those are fine, they're internal
 
-Example ideal kafka setup
+**Example ideal kafka setup**
     - Generate 3 brokers (servers) (a,b,c). broker a gets the data, it copies that data to broker b and c. thus if broker a breaks, broker b takes over, etc.
     - set 1 cluster id (this is the id for the whole kafka setup)
     - set 1 topic
@@ -196,7 +196,28 @@ See if it's running
         - bin\windows\kafka-topics.bat --bootstrap-server localhost:9092 --list
 
 
+### gRPC details
+**misc**
 
+**go to go communication**
+- the data generation file starts the config for grpc to send files from go to go
+- setup (server)
+    - grpc.newserver(): boot it up. this creates a generic grpc engine. it's an internal struct for network connections, and stuff. it doesn't 
+know about my stuff or file uploads yet, it's just an empty server waiting for services to be registered
+    - file_upload_server := grpc.NewServer(): makes the listener/protocol handler
+    - pb.registerFeatureStoreserver(): links my code to the engine. file_upload_server is the generic engine I just made. grpc_server() is my 
+custom struct that holds the db connections
+    - now we have a engine that has the db connections. this is a SERVER, so I don't pass around a variable for it; the os knows about it. it tells the os to reserve that port and send all traffic that hits it to file_upload_server
+
+    - separate go routine calls runGrpcUploader() (client)
+        - every 10 seconds it generates a file that we'll send. but it's using the same port as the server we just made.
+
+    - setup summary
+        - startgrpcserver: tells os to listen to port x and direct traffic from there to it (background process)
+        - rungrpcuploader: client for that server. sends data to that port
+
+
+**ideal set up - go to python communication**
 
 
 

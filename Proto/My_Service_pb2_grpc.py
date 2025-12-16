@@ -35,11 +35,6 @@ class FeatureStoreStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.IngestEvents = channel.unary_unary(
-                '/myservice.FeatureStore/IngestEvents',
-                request_serializer=My__Service__pb2.IngestRequest.SerializeToString,
-                response_deserializer=My__Service__pb2.IngestResponse.FromString,
-                _registered_method=True)
         self.UploadFile = channel.stream_unary(
                 '/myservice.FeatureStore/UploadFile',
                 request_serializer=My__Service__pb2.FileChunk.SerializeToString,
@@ -51,13 +46,6 @@ class FeatureStoreServicer(object):
     """--- Service A: Feature Store ---
     """
 
-    def IngestEvents(self, request, context):
-        """Ingest batch data (e.g., from file uploads)
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def UploadFile(self, request_iterator, context):
         """File upload capability (chunks for large files)
         """
@@ -68,11 +56,6 @@ class FeatureStoreServicer(object):
 
 def add_FeatureStoreServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'IngestEvents': grpc.unary_unary_rpc_method_handler(
-                    servicer.IngestEvents,
-                    request_deserializer=My__Service__pb2.IngestRequest.FromString,
-                    response_serializer=My__Service__pb2.IngestResponse.SerializeToString,
-            ),
             'UploadFile': grpc.stream_unary_rpc_method_handler(
                     servicer.UploadFile,
                     request_deserializer=My__Service__pb2.FileChunk.FromString,
@@ -89,33 +72,6 @@ def add_FeatureStoreServicer_to_server(servicer, server):
 class FeatureStore(object):
     """--- Service A: Feature Store ---
     """
-
-    @staticmethod
-    def IngestEvents(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/myservice.FeatureStore/IngestEvents',
-            My__Service__pb2.IngestRequest.SerializeToString,
-            My__Service__pb2.IngestResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
 
     @staticmethod
     def UploadFile(request_iterator,
@@ -210,6 +166,93 @@ class ModelServing(object):
             '/myservice.ModelServing/Predict',
             My__Service__pb2.PredictRequest.SerializeToString,
             My__Service__pb2.PredictResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class JobSchedulerStub(object):
+    """--- Service C: Drift Monitoring (Placeholder) ---
+    Service C listens to Kafka, so it might not need a gRPC server for ingestion.
+    But it might expose an API to get drift status.
+
+    --- Service D: Job Scheduler ---
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.TriggerJob = channel.unary_unary(
+                '/myservice.JobScheduler/TriggerJob',
+                request_serializer=My__Service__pb2.TriggerJobRequest.SerializeToString,
+                response_deserializer=My__Service__pb2.TriggerJobResponse.FromString,
+                _registered_method=True)
+
+
+class JobSchedulerServicer(object):
+    """--- Service C: Drift Monitoring (Placeholder) ---
+    Service C listens to Kafka, so it might not need a gRPC server for ingestion.
+    But it might expose an API to get drift status.
+
+    --- Service D: Job Scheduler ---
+    """
+
+    def TriggerJob(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_JobSchedulerServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'TriggerJob': grpc.unary_unary_rpc_method_handler(
+                    servicer.TriggerJob,
+                    request_deserializer=My__Service__pb2.TriggerJobRequest.FromString,
+                    response_serializer=My__Service__pb2.TriggerJobResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'myservice.JobScheduler', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('myservice.JobScheduler', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class JobScheduler(object):
+    """--- Service C: Drift Monitoring (Placeholder) ---
+    Service C listens to Kafka, so it might not need a gRPC server for ingestion.
+    But it might expose an API to get drift status.
+
+    --- Service D: Job Scheduler ---
+    """
+
+    @staticmethod
+    def TriggerJob(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/myservice.JobScheduler/TriggerJob',
+            My__Service__pb2.TriggerJobRequest.SerializeToString,
+            My__Service__pb2.TriggerJobResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -421,81 +464,6 @@ class PythonWorker(object):
             '/myservice.PythonWorker/TrainModel',
             My__Service__pb2.TrainRequest.SerializeToString,
             My__Service__pb2.TrainResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-
-class JobSchedulerStub(object):
-    """--- Service D: Job Scheduler ---
-    """
-
-    def __init__(self, channel):
-        """Constructor.
-
-        Args:
-            channel: A grpc.Channel.
-        """
-        self.TriggerJob = channel.unary_unary(
-                '/myservice.JobScheduler/TriggerJob',
-                request_serializer=My__Service__pb2.TriggerJobRequest.SerializeToString,
-                response_deserializer=My__Service__pb2.TriggerJobResponse.FromString,
-                _registered_method=True)
-
-
-class JobSchedulerServicer(object):
-    """--- Service D: Job Scheduler ---
-    """
-
-    def TriggerJob(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-
-def add_JobSchedulerServicer_to_server(servicer, server):
-    rpc_method_handlers = {
-            'TriggerJob': grpc.unary_unary_rpc_method_handler(
-                    servicer.TriggerJob,
-                    request_deserializer=My__Service__pb2.TriggerJobRequest.FromString,
-                    response_serializer=My__Service__pb2.TriggerJobResponse.SerializeToString,
-            ),
-    }
-    generic_handler = grpc.method_handlers_generic_handler(
-            'myservice.JobScheduler', rpc_method_handlers)
-    server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('myservice.JobScheduler', rpc_method_handlers)
-
-
- # This class is part of an EXPERIMENTAL API.
-class JobScheduler(object):
-    """--- Service D: Job Scheduler ---
-    """
-
-    @staticmethod
-    def TriggerJob(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/myservice.JobScheduler/TriggerJob',
-            My__Service__pb2.TriggerJobRequest.SerializeToString,
-            My__Service__pb2.TriggerJobResponse.FromString,
             options,
             channel_credentials,
             insecure,

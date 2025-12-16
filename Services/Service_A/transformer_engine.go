@@ -110,13 +110,7 @@ func SendBatch_Duckdb(batchData []FeatureData, duck_conn *sql.DB) {
 //
 //	FIRST: most recent value of each feature to redis
 //	THEN: all values to duckdb
-func StartTransformerEngine(app_config_struct *config.App_Config) {
-	redis_conn, duck_conn, reader := SetupEngine(app_config_struct)
-
-	defer reader.Close()
-	defer duck_conn.Close()
-	defer redis_conn.Close()
-
+func StartTransformerEngine(reader *kafka.Reader, redis_conn *redis.Client, duck_conn *sql.DB, app_config_struct *config.App_Config) {
 	fmt.Printf("Transformer Engine started, listening on topic: %s\n", app_config_struct.Connections.KafkaTopic)
 
 	// Batch configuration

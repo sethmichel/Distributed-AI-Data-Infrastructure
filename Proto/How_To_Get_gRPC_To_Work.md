@@ -72,3 +72,19 @@ This needs to run in a venv. it requires a ton of outdated versions of libraries
     - go interface for the connection. RegisterMyServiceServer(...) is a function to link your implementation to the gRPC server
 - my_service.pb.go
     - the generated go structs. it lets me use "req := &myservice.HelloRequest{Name: "Seth"}" in my code
+
+# Regenerating the Proto Files (if you make changes to My_Service.proto)
+
+After editing My_Service.proto, regenerate all files with these commands:
+
+**For Go:**
+```bash
+cd Proto
+protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative My_Service.proto
+```
+
+**For Python (in venv):**
+```bash
+cd Proto
+python -m grpc_tools.protoc --proto_path=. --python_out=. --grpc_python_out=. My_Service.proto
+```

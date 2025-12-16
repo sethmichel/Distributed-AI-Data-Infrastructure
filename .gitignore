@@ -3,7 +3,14 @@ venv/
 Design_Docs/Resume_Entry.md
 Design_Docs/SECRETS.txt
 Gobal_Configs/Env/
+Data/offline_store.duckdb
+Data/offline_store.duckdb.wal
+ai_infra_project.exe
 
+*.env
+.env
+*.exe
+.exe
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
