@@ -609,3 +609,7 @@ Details
 2) c++ memory management layer
     - goals: more experience with c++
     - stuff like this benifits a lot from memory managment at scale
+
+3) cache common duckdb queries in redis. like "get user profile". that would be faster
+
+4) right now I send duckdb read/write requests to redis which the db handler service sees. I likly should use grpc instead

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	config "ai_infra_project/Global_Configs"
+	"ai_infra_project/Services"
 	service_a "ai_infra_project/Services/Service_A"
 )
 
@@ -39,6 +41,12 @@ func main() {
 	}
 
 	log.Println("All system checks completed successfully.")
+
+	// Start DB Handler
+	log.Println("Starting DB Handler...")
+	if err := Services.StartDBHandler(context.Background(), app_config_struct); err != nil {
+		log.Fatalf("Failed to start DB Handler: %v", err)
+	}
 
 	// SERVICE A
 	log.Println("Starting Service A...")

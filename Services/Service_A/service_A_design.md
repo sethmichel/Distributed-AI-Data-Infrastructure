@@ -62,6 +62,7 @@ duck db
         - only the last known value of "value" for each feature. this is the current state
         - use a hashmap like: HSET entity:user_123 value 42.0
     - I don't think promethius does anything here. but I should check later
+    - we DO NOT vectorize the data. store it raw so it's more flexable for different models
 
 ### kafka
 **Basics of Kafka**

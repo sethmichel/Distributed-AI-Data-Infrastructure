@@ -7,4 +7,3 @@ redis
 duckdb
 azure-storage-blob
 python-dotenv
-
