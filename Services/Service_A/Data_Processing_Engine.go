@@ -39,7 +39,7 @@ func SetupEngine(app_config_struct *config.App_Config) (*redis.Client, *kafka.Re
 	}
 
 	// Configure the kafka reader
-	reader := kafka.NewReader(kafka.ReaderConfig{
+	kafka_reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{app_config_struct.Connections.KafkaAddr},
 		Topic:    app_config_struct.Connections.KafkaTopic,
 		GroupID:  "transformer-group",
@@ -47,7 +47,7 @@ func SetupEngine(app_config_struct *config.App_Config) (*redis.Client, *kafka.Re
 		MaxBytes: 10e6, // 10MB
 	})
 
-	return redis_conn, reader
+	return redis_conn, kafka_reader
 }
 
 // sends a batch of data to redis
@@ -80,11 +80,12 @@ func SendBatch_Redis(batchData []FeatureData, redis_conn *redis.Client, ctxInner
 
 // Schema: entity_id, feature_name, value, event_timestamp
 // send a bactch of data to duckdb via redis queue
+// this is files and raw data
 func SendBatch_Duckdb_Queue(batchData []FeatureData, redis_conn *redis.Client, ctx context.Context) {
 	if len(batchData) > 0 {
 		pipe := redis_conn.Pipeline()
 		for _, data := range batchData {
-			// Construct WriteRequest compatible with DB_Handler
+			// make write request
 			req := Services.WriteRequest{
 				Table: "features",
 				Data: map[string]interface{}{
@@ -96,7 +97,7 @@ func SendBatch_Duckdb_Queue(batchData []FeatureData, redis_conn *redis.Client, c
 				},
 			}
 
-			valBytes, err := json.Marshal(req)
+			valBytes, err := json.Marshal(req) // serialize into bytes
 			if err != nil {
 				log.Printf("Error marshaling duckdb write request: %v", err)
 				continue
@@ -118,7 +119,9 @@ func SendBatch_Duckdb_Queue(batchData []FeatureData, redis_conn *redis.Client, c
 //
 //	FIRST: most recent value of each feature to redis
 //	THEN: all values to duckdb
-func StartTransformerEngine(reader *kafka.Reader, redis_conn *redis.Client, app_config_struct *config.App_Config) {
+func StartDataProcessingEngine(redis_conn *redis.Client, app_config_struct *config.App_Config) {
+	redis_conn, kafka_reader := SetupEngine(app_config_struct)
+	
 	fmt.Printf("Transformer Engine started, listening on topic: %s\n", app_config_struct.Connections.KafkaTopic)
 
 	// Batch configuration -
@@ -138,7 +141,7 @@ func StartTransformerEngine(reader *kafka.Reader, redis_conn *redis.Client, app_
 
 		ctxInner := context.Background()
 
-		// 1. Send batch to Redis (do this before duckdb)
+		// 1. Send batch to Redis
 		SendBatch_Redis(batchData, redis_conn, ctxInner)
 
 		// 2. Send batch to DuckDB Queue
@@ -150,7 +153,7 @@ func StartTransformerEngine(reader *kafka.Reader, redis_conn *redis.Client, app_
 		//    crash and restart kafka will send the same data again. if I commit early before writing to the db's, and crash,
 		//    I lose the data forever. this is a "at least once" pattern. the cost is 1 network request to kafka; but since we're
 		//    batching it's not that bad
-		if err := reader.CommitMessages(ctxInner, batchMsgs...); err != nil {
+		if err := kafka_reader.CommitMessages(ctxInner, batchMsgs...); err != nil {
 			log.Printf("Error committing messages to Kafka: %v", err)
 		} else {
 			if len(batchData) > 0 {
@@ -168,7 +171,7 @@ func StartTransformerEngine(reader *kafka.Reader, redis_conn *redis.Client, app_
 		// Create a context with timeout for the fetch operation
 		// This ensures we don't wait forever if the batch isn't full
 		ctx, cancel := context.WithTimeout(context.Background(), flushInterval)
-		msg, err := reader.FetchMessage(ctx)
+		msg, err := kafka_reader.FetchMessage(ctx)
 		cancel() // Cancel context immediately after fetch returns to release resources
 
 		if err != nil {

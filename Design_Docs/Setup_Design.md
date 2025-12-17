@@ -18,7 +18,7 @@ idea is do this 1 time correctly, then never again
         extra_hosts:
         - "host.docker.internal:host-gateway" # CRITICAL: Allows Prometheus (inside Docker) to talk to your Go app (on localhost)
     - bash script for a full tear down and rebuild of the containers/servers
-    - prometheus.yml: Configures Prometheus to scrape your Go app's /metrics endpoint.
+    - Prometheus.yml: Configures Prometheus to scrape your Go app's /metrics endpoint.
     - grafana_datasources.yaml: Auto-provisions Prometheus as a data source in Grafana so you don't have to do it manually every restart.
 
 **Need a go file that all the duckdb writes go through**

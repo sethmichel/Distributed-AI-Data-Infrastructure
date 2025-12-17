@@ -64,7 +64,9 @@ func StartDBHandler(ctx context.Context, cfg *config.App_Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to open duckdb: %w", err)
 	}
-	db.SetMaxOpenConns(1)
+	// Allow multiple open connections for concurrent reads (go routines).
+	// DuckDB handles MVCC (Multi-Version Concurrency Control), this is why we don't manually lock it
+	db.SetMaxOpenConns(50)
 	handler.DuckDB = db
 
 	log.Println("DBHandler started. Listening for Redis queues...")
@@ -181,6 +183,9 @@ func (h *DBHandler) executeWriteTx(ctx context.Context, tx *sql.Tx, req WriteReq
 
 // processReads handles the Read Queue.
 func (h *DBHandler) processReads(ctx context.Context) {
+	// limit concurrent reads
+	maxReads := make(chan struct{}, 50)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -201,23 +206,26 @@ func (h *DBHandler) processReads(ctx context.Context) {
 			}
 			payload := result[1]
 
-			var req ReadRequest
-			if err := json.Unmarshal([]byte(payload), &req); err != nil {
-				log.Printf("Error unmarshaling read request: %v", err)
-				continue
-			}
+			// Acquire maxReads
+			maxReads <- struct{}{}
 
-			h.handleRead(ctx, req)
+			go func(p string) {
+				defer func() { <-maxReads }() // Release maxReads
+
+				var req ReadRequest
+				if err := json.Unmarshal([]byte(p), &req); err != nil {
+					log.Printf("Error unmarshaling read request: %v", err)
+					return
+				}
+
+				h.handleRead(ctx, req)
+			}(payload)
 		}
 	}
 }
 
-// handleRead performs the DuckDB query and pushes results back to Redis
+// does the DuckDB query and pushes results back to Redis
 func (h *DBHandler) handleRead(ctx context.Context, req ReadRequest) {
-	// Acquire Lock
-	h.dbLock.Lock()
-	defer h.dbLock.Unlock()
-
 	// Execute Query
 	rows, err := h.DuckDB.QueryContext(ctx, req.Query)
 	if err != nil {

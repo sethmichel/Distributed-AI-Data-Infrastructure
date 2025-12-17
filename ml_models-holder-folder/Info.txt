@@ -1,0 +1,21 @@
+the trading models would take like an hour to fix because I renamed folders, moved things, and for some reason deleted my model 
+artifacts when I finalized the project for github.
+
+the models in this folder are random models that still need just a bit of input
+
+Just set your auto generated data to match these and they should work with the pkl files
+
+# --- Model 1: "House Price Estimator" (Linear Regression) ---
+# Concept: Predicts house price based on size and bedrooms.
+# Input: [Size in sqft, Number of Bedrooms]
+# Output: Estimated Price (Float)
+
+# --- Model 2: "Loan Approver" (Logistic Regression) ---
+# Concept: Approves or denies a loan based on credit and income.
+# Input: [Credit Score (300-850), Annual Income ($)]
+# Output: 0 (Reject) or 1 (Approve)
+
+# --- Model 3: "Coffee Recommender" (Decision Tree) ---
+# Concept: Recommends a drink type based on weather and taste.
+# Input: [Temperature (C), Sweetness Preference (1-10)]
+# Output: 0 (Iced Latte), 1 (Espresso), 2 (Cappuccino)

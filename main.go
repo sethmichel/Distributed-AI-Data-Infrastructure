@@ -35,7 +35,12 @@ func main() {
 		log.Fatalf("Docker services check failed: %v", err)
 	}
 
-	// 5. Check/start Kafka
+	// 5. Load production models (Service B logic)
+	if err := LoadModelsOnStartup(app_config_struct); err != nil {
+		log.Fatalf("Failed to load models: %v", err)
+	}
+
+	// 6. Check/start Kafka
 	if err := CheckKafka(app_config_struct); err != nil {
 		log.Fatalf("Kafka check failed: %v", err)
 	}
@@ -50,7 +55,7 @@ func main() {
 
 	// SERVICE A
 	log.Println("Starting Service A...")
-	go service_a.Start(app_config_struct)
+	go service_a.ServiceAStart(app_config_struct)
 
 	log.Println("All system checks completed successfully. System is running. Press CTRL+C to stop.")
 

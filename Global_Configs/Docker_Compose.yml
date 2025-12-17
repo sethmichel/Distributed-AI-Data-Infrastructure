@@ -17,7 +17,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./Prometheus.yml:/etc/prometheus/Prometheus.yml
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

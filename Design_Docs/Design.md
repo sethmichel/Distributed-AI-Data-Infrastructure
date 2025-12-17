@@ -613,3 +613,5 @@ Details
 3) cache common duckdb queries in redis. like "get user profile". that would be faster
 
 4) right now I send duckdb read/write requests to redis which the db handler service sees. I likly should use grpc instead
+
+5) save the model metadata in redis instead of duckdb

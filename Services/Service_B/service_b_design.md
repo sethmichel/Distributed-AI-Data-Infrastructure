@@ -1,3 +1,13 @@
+**Basic Design**
+
+todo
+- at startup, if I have local models whos metadata isn't in redis (because redis was nuked during dev for example), load their metadata in
+
+
+handler.go
+- load azure variables and make the azure client and redis client
+
+
 we need something to define the interfact of each model. model signature. it'll map values to features (redis)
   {
   "model_id": "credit_risk_v1",

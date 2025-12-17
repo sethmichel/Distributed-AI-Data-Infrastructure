@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -10,17 +11,12 @@ import (
 	"time"
 
 	config "ai_infra_project/Global_Configs"
+	service_b "ai_infra_project/Services/Service_B"
 
 	_ "github.com/marcboeker/go-duckdb"
 	"github.com/segmentio/kafka-go"
 )
 
-// check redis has python worker count
-// check azure is ok
-// check duckdb is made
-// check yaml, yml, env files
-// check docker containers are active and prometheus/granfana is running
-// check the DuckDB file exists and the tables are created
 func CheckDuckDB(app_config_struct *config.App_Config) error {
 	path := app_config_struct.Connections.DuckDBPath
 
@@ -38,8 +34,7 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 	}
 	defer db.Close()
 
-	// Create table
-	// event timestamp: When the event actually happened
+	// Create features table if it doesn't exist
 	query := `
 		CREATE TABLE IF NOT EXISTS features (
 			entity_id TEXT,
@@ -54,6 +49,43 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 	}
 	log.Printf("DuckDB initialized successfully (table checked) at %s.", path)
 
+	// create model metadata table if it doesn't exist
+	metadataQuery := `
+		CREATE TABLE IF NOT EXISTS model_metadata (
+			model_id TEXT,
+			version TEXT,
+			trainedDate DATE,
+			status TEXT,
+			azure_location TEXT,
+			expected_features STRUCT("index" INTEGER, "name" TEXT, "type" TEXT)[],
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`
+
+	if _, err := db.Exec(metadataQuery); err != nil {
+		return fmt.Errorf("failed to create model_metadata table: %w", err)
+	}
+
+	return nil
+}
+
+func LoadModelsOnStartup(app_config_struct *config.App_Config) error {
+	log.Println("Calling service B to Load production models from Azure...")
+	redisAddr := app_config_struct.Connections.RedisAddr
+
+	handler, err := service_b.CreateNewHandler(redisAddr)
+	if err != nil {
+		return fmt.Errorf("failed to create service_b handler: %w", err)
+	}
+	defer handler.CloseRedisClient()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	if err := handler.LoadProductionModels(ctx); err != nil {
+		return fmt.Errorf("failed to load production models: %w", err)
+	}
+
+	log.Println("Successfully loaded production models.")
 	return nil
 }
 
@@ -135,7 +167,7 @@ func CheckKafka(app_config_struct *config.App_Config) error {
 // Check/start Docker containers for Prometheus, Grafana, Redis
 // telling docker to start over and over while it's already up doesn't do anything bad
 func StartDockerServices() error {
-	cmd := exec.Command("docker", "compose", "-f", "Global_Configs/docker-compose.yml", "up", "-d")
+	cmd := exec.Command("docker", "compose", "-f", "Global_Configs/Docker_Compose.yml", "up", "-d")
 
 	log.Println("Starting Docker services (Redis, Prometheus, Grafana)...")
 
@@ -155,7 +187,7 @@ func StartDockerServices() error {
 func StopDockerServices() error {
 	log.Println("Stopping Docker services...")
 
-	cmd := exec.Command("docker", "compose", "-f", "Global_Configs/docker-compose.yml", "down")
+	cmd := exec.Command("docker", "compose", "-f", "Global_Configs/Docker_Compose.yml", "down")
 
 	// Inherit stdout/stderr for visibility
 	cmd.Stdout = os.Stdout

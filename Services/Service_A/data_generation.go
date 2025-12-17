@@ -17,11 +17,13 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/apache/arrow-go/v18/parquet/pqarrow"
 	"github.com/segmentio/kafka-go"
+	"github.com/redis/go-redis/v9"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// the contents of the json we're sending
 type FeatureData struct {
 	EntityID    string    `json:"entity_id"`
 	FeatureName string    `json:"feature_name"`
@@ -30,36 +32,53 @@ type FeatureData struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-func Start(app_config_struct *config.App_Config) {
-	// Initialize Kafka writer
-	writer := &kafka.Writer{
+func GetConnections(app_config_struct *config.App_Config) (*redis.Client, *kafka.Writer) {
+	// initialize Kafka writer
+	kafka_writer := &kafka.Writer{
 		Addr:     kafka.TCP(app_config_struct.Connections.KafkaAddr),
 		Topic:    app_config_struct.Connections.KafkaTopic,
 		Balancer: &kafka.LeastBytes{},
 	}
-	defer writer.Close()
 
-	// Setup connections - we do this here because grpc needs the connections. otherwise we'd do it in the transformer engine
-	redis_conn, reader := SetupEngine(app_config_struct)
+	// redis Connection
+	redis_conn := redis.NewClient(&redis.Options{
+		Addr: app_config_struct.Connections.RedisAddr,
+	})
+
+	// test Redis connection
+	if _, err := redis_conn.Ping(context.Background()).Result(); err != nil {
+		log.Printf("Warning: Failed to connect to Redis at %s: %v", app_config_struct.Connections.RedisAddr, err)
+	} else {
+		log.Println("Connected to Redis successfully")
+	}
+
+	return redis_conn, kafka_writer
+}
+
+// start service A here
+func ServiceAStart(app_config_struct *config.App_Config) {
+	// Setup connections - grpc needs the redis connection
+	redis_conn, kafka_writer := GetConnections(app_config_struct)
+
 	// Note: We cannot defer Close here if we want them to survive in the goroutines,
 	// BUT since Start blocks with select{}, defers here will only run when Start exits,
-	// which is what we want.
+	// which is what we want
 	defer redis_conn.Close()
-	defer reader.Close()
+	defer kafka_writer.Close()
 
-	// Start transformer engine (consumer)
-	go StartTransformerEngine(reader, redis_conn, app_config_struct)
+	// Start data processing engine (consumer)
+	go StartDataProcessingEngine(redis_conn, app_config_struct)
+
+	// Start data generation routine
+	go SendRandomRawData(kafka_writer)
 
 	// Start gRPC Server
 	go StartGrpcServer(app_config_struct, redis_conn)
 
-	// Start data generation routine
-	go generateData(writer)
-
 	// Start gRPC upload routine
-	go runGrpcUploader()
+	go SendRandomFiles()
 
-	// Keep the function running so the writer stays open
+	// Keep the function running so the kafka_writer stays open
 	select {}
 }
 
@@ -70,7 +89,7 @@ func Start(app_config_struct *config.App_Config) {
 // go routine function
 // we'll make 100 id's, and each id has x features. we then produce data of different values for those features
 // it's iterating entity id's and doing 1 entry per feature. then goes to the next entity id.
-func generateData(writer *kafka.Writer) {
+func SendRandomRawData(kafka_writer *kafka.Writer) {
 	iteration_timer := time.NewTicker(500 * time.Millisecond) // timer for every 0.5 seconds
 	defer iteration_timer.Stop()
 
@@ -97,8 +116,8 @@ func generateData(writer *kafka.Writer) {
 			CreatedAt:   time.Now(),
 		}
 
-		// Send to transformer engine
-		SendToTransformer(writer, data)
+		// Send to data processing engine
+		SendToDataProcessor(kafka_writer, data)
 
 		// Cycle through features and entities
 		featureIdx++
@@ -113,14 +132,14 @@ func generateData(writer *kafka.Writer) {
 }
 
 // sends data to kafka who sends it to the destination
-func SendToTransformer(writer *kafka.Writer, data FeatureData) {
+func SendToDataProcessor(kafka_writer *kafka.Writer, data FeatureData) {
 	jsonData, err := json.Marshal(data) // marshal is a serializer. it converts it to bytes
 	if err != nil {
 		log.Printf("Error converting data for kafka format: %v", err)
 		return
 	}
 
-	err = writer.WriteMessages(context.Background(),
+	err = kafka_writer.WriteMessages(context.Background(),
 		kafka.Message{
 			Key:   []byte(data.EntityID),
 			Value: jsonData,
@@ -140,7 +159,7 @@ func SendToTransformer(writer *kafka.Writer, data FeatureData) {
 // go routine function
 // generate a json or parquet file (alternate between them) of random data
 // this is a CLIENT. it's using the server we made. it's using the port which gets directed to teh file_upload_server
-func runGrpcUploader() {
+func SendRandomFiles() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 

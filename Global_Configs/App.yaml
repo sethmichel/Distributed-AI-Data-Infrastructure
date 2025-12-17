@@ -15,7 +15,7 @@ drift:
   threshold: 0.1
 
 connections:
-  duckdb_path: "./Data/offline_store.duckdb"
+  duckdb_path: "./Data/Offline_Store.duckdb"
   redis_addr: "localhost:6379"
   azure_conn: "UseDevelopmentStorage=true"
   kafka_addr: "127.0.0.1:9092"

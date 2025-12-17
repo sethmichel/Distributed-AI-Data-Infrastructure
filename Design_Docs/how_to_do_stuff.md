@@ -91,11 +91,11 @@ func main() {
 ## duck db
 
 DuckDB is a fast in-process analytical database. It works like SQLite (single file) but is optimized for data analysis (OLAP).
-- **Files**: The database is just a file (e.g. `Data/offline_store.duckdb`).
+- **Files**: The database is just a file (e.g. `Data/Offline_Store.duckdb`).
 - **SQL**: You use standard SQL to query it.
 
 **Using Python**
-con = duckdb.connect('Data/offline_store.duckdb')
+con = duckdb.connect('Data/Offline_Store.duckdb')
 
 con.execute("CREATE TABLE IF NOT EXISTS items (item VARCHAR, value DECIMAL(10,2), count INTEGER)")
 
@@ -118,7 +118,7 @@ import (
 
 func main() {
     // Open the file
-    db, _ := sql.Open("duckdb", "./Data/offline_store.duckdb")
+    db, _ := sql.Open("duckdb", "./Data/Offline_Store.duckdb")
     defer db.Close()
 
     // Query

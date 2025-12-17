@@ -1,68 +1,46 @@
-duckdb schema
-    CREATE TABLE features (
-        entity_id text,            -- "user_123"
-        feature_name text,         -- "click_count_7d"
-        value DOUBLE,              -- 42.0
-        event_timestamp TIMESTAMP, -- When the event actually happened
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP      -- When your system processed it
-    );
+**Basic design**
+1) Service A generates raw json data in this format
+	EntityID    string    `json:"entity_id"`
+	FeatureName string    `json:"feature_name"`
+	Value       float64   `json:"value"`
+	ValidatedAt time.Time `json:"validated_at"`
+	CreatedAt   time.Time `json:"created_at"`
 
-redis schema
-- just the most recent value of each feature with a timestamp. otherwise we don't know if a value is 1 day vs 1 week old
+    and generates json and parquet files. data_generation is the client for this. the grpc server is in data_processing_engine. data_generation sends the file over as binary, data_processing gets the file and sends it to storage
 
-kafka setup
-- batchsize is 5
-- flushinterval is 2
-- it'll send a batch when it reaches batchsize or the timer finishes
+2) it starts a kafka writer which the json data is sent to. there's it's grouped in a batch until it reaches x size or it's been y seconds
 
-BUGS:
+3) in 1 go routine it generates the json data, and 1 other go routine it generates a json or parquet file which is sent via a grpc endpoint. all data goes to data_processing_engine.go.
+
+4) all duckdb reads/writes go through a redis queue which is handled by the database service
+
+**connections**
+data generation file: kafka reader, grpc client, redis connection
+data processing file: kafka writer, grpc server, redis connection
+
+**schemas**
+duckdb write format
+req := Services.WriteRequest{
+				Table: "features",
+				Data: map[string]interface{}{
+					"entity_id":       data.EntityID,
+					"feature_name":    data.FeatureName,
+					"value":           data.Value,
+					"event_timestamp": data.ValidatedAt,
+					"created_at":      data.CreatedAt,
+				},
+			}
+
+Redis schema
+- Key: feature_name. values: value, timestamp
+- the most recent value of each feature with a timestamp. otherwise we don't know if a value is 1 day vs 1 week old
+
+**BUGS**
 - transformer_engine.go
     - In the loop where I send data to duckdb, if one single insert fails (e.g., bad data), I log it and continue.
 
-files
-    - data generation (go)
-        - generate json data {entity_id, feature_name, value, validated_at, created_at}
-            - this will make like 100 entitiy_id's, 5 features, and cycle through them with new values for each feature
-        - kafka (batch)
-            - try to keep data in order by id so it's processed in order. something about partitioning kafka topics by id
-            - this is the producer file transformer engine is the consumer file.
-            - main
-        - grpc
-            - handle csv, parquet files
 
-    - transformer engine (python)
-        - accept kafka json data in batches
-        - accept csv, parquet files from grpc
-        - spawn python workers to process then send to db's
-        - function to send data to duck db
-        - function to send data to redis
-duck db
-    - duckdb appender for data
-    - "insert into features select * from 'upload.parquet'" for files
-    - feature store
-        entity_id, feature_name, value, validated_at, created_at
-
-    - Table Schema
-    CREATE TABLE features (
-        entity_id text,            -- "user_123"
-        feature_name text,         -- "click_count_7d"
-        value DOUBLE,              -- 42.0
-        event_timestamp TIMESTAMP, -- When the event actually happened
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP      -- When your system processed it
-    );
-
-1) make data generation script
-    - data sent via kafka to transformer engine
-    - files sent over gRPC to transformer engine
-
-2) make tranformer engine
-    - python worker pool (global tracking of workers across all services so we don't exceed the max)
-    - all data to duck db
-    - some data to redis
-        - only the last known value of "value" for each feature. this is the current state
-        - use a hashmap like: HSET entity:user_123 value 42.0
-    - I don't think promethius does anything here. but I should check later
-    - we DO NOT vectorize the data. store it raw so it's more flexable for different models
+--------------------------------------------------------------
 
 ### kafka
 **Basics of Kafka**
@@ -144,7 +122,7 @@ duck db
     scenarios
         - If I suddenly get 10000 more cars, I can add more partitions and more app instances. each app isntances processes only its parition
 
-**SETUP**
+**KAFKA SETUP**
 
 start kafka broker (in cmd)
 - https://kafka.apache.org/quickstart
@@ -222,126 +200,3 @@ custom struct that holds the db connections
 
 
 
-# details from design.md
-
-- Ingests streaming + batch data
-- Computes features with a DAG engine (Transform Orchestrator/controller)
-    - reason it's a dag: I'm transforming raw data into features. this uses steps that depend on each other. it's a really simple dag
-- Keeps point-in-time–correct versions
-- Stores in an online KV store + offline warehouse
-- Supports backfills, lineage tracking, metadata
-
-**Core Philosophy:**
-- **Go** for the "Plumbing": Ingestion, API Serving, Orchestration, State Management.
-- **Python** for the "Logic": Complex feature transformations (pandas/numpy support).
-- **DuckDB** for the "History": Efficient analytical queries on a single node. (column db)
-- **Redis** for the "Now": Ultra-fast online retrieval.
-
-### 1. Core Components
-
-*   **Ingestion Gateway (Go)**
-summary
-inputs: raw data and raw file uploads
-outputs: valid model features saved in redis and duckdb
-
-- A data generator file spawning 2+ go routines to generate fake user info in json ({ "user_id": 123, "action": "click", "timestamp": ... }) and streamed over kafka. It should also have 1 go routine which calls the gRPC api every 10 seconds. sends data to transformation engine in batches
-
-- a gRPC api script to handle file uploads. kafka doesn't deal with this. it sends data to the transformation engine
-
-- Both sends that data (likely in batches for kafka) to the transformation engine which transforms the data via python workers working in parallel. for file's it'll split the file up and do the same. now the data is a "feature"
-    - issue: calling python from go for each event is slow. use option 2
-        option 1) We will use a long-running Python gRPC server. Go sends a *batch* of events to Python to reduce network overhead
-        option 2) or we accept the overhead for simplicity since scale is small.
-
-- any critical data is sent to redis, and all data is sent to duckdb after that (after transformation). use duckdb appender for kafka data, and use something like "insert into features select * from 'upload.parquet'" for files.
-    - issue: Ensuring we don't leak future data.
-        - Solution: Every feature write MUST have an `event_timestamp`.
-            - DuckDB Query Strategy: `AS OF` joins are powerful here. We will store an append-only log of feature values in DuckDB: `(entity_id, feature_name, value, valid_at, created_at)`.
-
-    kafka + gRPC -> transformation engine -> redis/ duckdb
-
-- to clarify, kafka will batch it and send it here as 1 batch. so this engine will be turned off while there are no files and when kafka is still gathering data
-
-Issues and imporvements
-- issue, concurrency/rapid updates
-    - *challenge*: if user updates profile twice in 1ms, processing order matters.
-    - *solution*: I can do this though: Partition Kafka topics by `entity_id`. This ensures all events for "User A" go to the same worker sequentially.
-
-- ignore this, I'll see how bad it actually is later: Issue, Infrastructure Complexity
-    - *Challenge*: Running Kafka + Redis + DuckDB + Go + Python locally is heavy.
-    - *possible solution*:
-        - Use **Redpanda** (single binary compatible with Kafka) or **NATS Jetstream** (lighter, Go-native) (nats is alternative to kafka)
-        - DuckDB is just a file, no server needed.
-
-- ignore this, I won't do it for now. improvement: make calling python from go faster
-    - Define your gRPC interface to accept BatchEventsRequest containing a list of events, rather than a single EventRequest.
-
-
-details
-    *   **Streaming**: Consumes from Kafka
-        Q: what is sending data to kafka? where does it come from and what form is it in?
-        A: a data generator (maybe json events) (e.g., { "user_id": 123, "action": "click", "timestamp": ... })
-            - in a company, a upstream app is sending data to kafka, like a web server, or app. something customer facing maybe. but for this we'd use 
-            - ex) A user clicks "Buy" on a website -> The Web API handles the order -> It simultaneously publishes an OrderCreated event to a Kafka topic
-
-    *   **Batch**: gRPC endpoints for file uploads
-        Q: check my understaning: so we'll have like get/post/put requests available like http endpoints for an api but we can use grpc to call them? and that's how people will upload files?
-        A: kinda. grpc is a reaplcement for those http things, not a wrapper. in rest you send a post to upload a file. in grpc you define a function and the client calls that function directly
-
-        Q: what is files in this context? because we have streaming already coming in from kafka, so are these endpoints like large datafiles manually uploaded?
-        A: ya, these are offline/bulk data dumps. maybe we hit kafka storage maxes, we can upload a csv of 1 year of data instead. a credit score company might drop a huge csv on a ftp server once a week, I need a way to ingest that dump into my system
-            - files are likely csv, parquet, or jsonL
-
-        Q: where do kafka/grpc send the data?
-        A: Everything goes to duckdb but critical data also gets updated in redis, but redis overall shouldn't have that much in it at any 1 time. since redis is expensive we do not store all new data. redis will have like user_age = 24, but new data comes in that's age 25, so we update redis THEN (before saving to duckdb). everything goes to duckdb. now redis can give critical info really fast on user log in. since file uploads are slow and likely not critical for the user to see, we store info from it in redis only if it has critical info, otherwise it goes in duckdb
-            - overall, depends on how the model uses data. for basic stuff, the distinction isn't about if it's the last 1 day of data vs last month of data, it's about access patterns (online vs offline).
-            - The duel write stategy. every time data comes in (kafka or file upload), the transformation engine calculates the features and sends it to BOTH duckdb and redis but in different formats
-                - online store: redis: only the latest values. used for inference. when a user logs in, the model needs their current stats right away. This means we keep a little data here but update it
-                - offline store: duckdb: every data point: for training, all data is equally as important
-            - file uploads are usually backfilling, slow data. 
-
-    *   *Role*: Deserializes data, validates schema against the Metadata Registry, and routes to the Transformation Engine.
-
-*   **Transformation Engine (Go Host + Python Workers)**
-
-    *   **The "Sidecar" Pattern**:
-        *   The Go service acts as the controller
-        *   It maintains a pool of **Python Workers** who process a gRPC file upload in parallel
-            - what do my options look like?
-                - docker
-                    - my docker_compose.yml would have one go-controller service and multiple python workers services or 1 service scaled to n replicas. so each workers is 1 container
-                    - the go service would loop up the workers by their dns name. it maintains a connection pool, when it has work it picks 1 worker container and sends it the data'
-                    - me: this seems like a huge bother. just don't do it
-                    - pros: decoupled/isolcated
-                - gRPC 
-                    - 1 user action != 1 worker. ex) a user uploads a csv of 1000 rows, the go host gets the file, and might split those 1000 rows into batches for workers to work on in parallel
-
-        *   When an event arrives, Go sends the payload to a Python worker.
-
-        *   Python runs the user-defined transformation (e.g., `def compute(event): return event['value'] * 2`).
-            Q: does this just mean we transform the raw data into usuable features for the models?
-            A: yes
-
-        *   Go receives the result.
-
-    *   *Why*: Best of both worlds. Go handles high concurrency/networking; Python handles the data science flexibility.
-
-*   **Storage Layer**
-
-    *   **Offline Store (DuckDB)**:
-        *   Go writes processed features here in batches (to avoid locking the file too often). use duckdb appender if possible for extra speed for data, and use a special sql command for files "insert into features select * from 'upload.parquet'"
-            Q: since duckdb is bad at writes, how should I approach this? is it good enough to write data in batches and write the whole file uploads at once? so there's only every 1 write happening?
-            A: yes, 
-                - just batch the data and write here only when the kafka buffer fills (like 5k rows) or on a timer. also can use the duckdb appender api in go, it's much faster than running insert sql because it writes directlry to the binary format
-                - for files duckdb is really good at this, you can ingest a 1 gb csv in seconds using "insert into features select * from 'upload.parquet', this counts as 1 write
-
-        *   Used for: Generating historical training datasets using Point-in-Time joins.
-
-    *   **Online Store (Redis)**:
-        *   Go writes the *latest* value here immediately after transformation.
-        *   Used for: Real-time inference lookups.
-
-*   **Serving API (Go)**
-    *   Exposes gRPC endpoints for Service B (Model Serving) to fetch features.
-        Q: how do launch or host this api? I'll have a data generation script running so basically how does it call it?
-        A: standard client/server model. the server is my go program, to host it I just run the go script. it'll start a service on a port and wait for connections. the data generator is the client that connects to the server and it just calls the function - that's the api
