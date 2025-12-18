@@ -1,11 +1,13 @@
 **Basic Design**
 
-todo
-- at startup, if I have local models whos metadata isn't in redis (because redis was nuked during dev for example), load their metadata in
+how the user interacts with a model
+- at startup, we look for models in azure with "production" in the file name. then we download all that models artifacts into redis
+- at startup, we store each prod models name into redis. now we can find out which models we can serve the user
+- service b lists the available models to the user, who selects one
+- service b queries duckdb for the model metadata, then asks the user for the required features
+- service b sends the request over gRPC to a python file
+- service b python file unpickles the model from redis, and runs the model
 
-
-handler.go
-- load azure variables and make the azure client and redis client
 
 
 we need something to define the interfact of each model. model signature. it'll map values to features (redis)

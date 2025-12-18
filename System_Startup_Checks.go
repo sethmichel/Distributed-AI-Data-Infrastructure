@@ -45,7 +45,7 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 	defer db.Close()
 
 	// Create features table if it doesn't exist
-	query := `
+	featureTableQuery := `
 		CREATE TABLE IF NOT EXISTS features (
 			entity_id TEXT,
 			feature_name TEXT,
@@ -54,13 +54,13 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);`
 
-	if _, err := db.Exec(query); err != nil {
+	if _, err := db.Exec(featureTableQuery); err != nil {
 		return fmt.Errorf("failed to create features table: %w", err)
 	}
-	log.Printf("DuckDB initialized successfully (table checked) at %s.", path)
+	log.Printf("features table is present in duckdb")
 
 	// create model metadata table if it doesn't exist
-	metadataQuery := `
+	metadataTableQuery := `
 		CREATE TABLE IF NOT EXISTS model_metadata (
 			model_id TEXT,
 			artifact_type TEXT,
@@ -72,7 +72,7 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);`
 
-	if _, err := db.Exec(metadataQuery); err != nil {
+	if _, err := db.Exec(metadataTableQuery); err != nil {
 		return fmt.Errorf("failed to create model_metadata table: %w", err)
 	}
 
@@ -100,6 +100,21 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 
 	// now add those model names to redis
 	AddModelNamesRedis(requiredModels, app_config_struct)
+
+	// check/create model logs table
+	modelLogsQuery := `
+		CREATE TABLE IF NOT EXISTS model_logs (
+			model_id TEXT,
+			model_version TEXT,
+			model_inputs: TEXT,
+			model_result: TEXT,
+			model_error: TEXT,
+			event_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`
+	if _, err := db.Exec(modelLogsQuery); err != nil {
+		return fmt.Errorf("failed to create model logs table in duckdb: %w", err)
+	}
+	log.Printf("model logs table is present in duckdb")
 
 	return nil
 }

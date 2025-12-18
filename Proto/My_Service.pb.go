@@ -21,6 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Generic event structure
 type Event struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EntityId      string                 `protobuf:"bytes,1,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
@@ -89,11 +90,11 @@ func (x *Event) GetTimestamp() string {
 	return ""
 }
 
-// File Upload Messages
+// File upload messages
 type FileChunk struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Content       []byte                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
-	Filename      string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"` // Sent with the first chunk or every chunk (simple)
+	Filename      string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -194,11 +195,11 @@ func (x *UploadStatus) GetMessage() string {
 	return ""
 }
 
-// Prediction Messages
+// Service B: Model Serving messages
 type PredictRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EntityId      string                 `protobuf:"bytes,1,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
-	FeatureNames  []string               `protobuf:"bytes,2,rep,name=feature_names,json=featureNames,proto3" json:"feature_names,omitempty"` // potentially override values or context
+	FeatureNames  []string               `protobuf:"bytes,2,rep,name=feature_names,json=featureNames,proto3" json:"feature_names,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -307,10 +308,10 @@ func (x *PredictResponse) GetModelVersion() string {
 	return ""
 }
 
-// Internal Python Worker Messages
+// Python Worker: Transform messages
 type TransformRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Events        []*Event               `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"` // Raw events to transform
+	Events        []*Event               `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -354,7 +355,7 @@ func (x *TransformRequest) GetEvents() []*Event {
 
 type TransformResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Features      []*Event               `protobuf:"bytes,1,rep,name=features,proto3" json:"features,omitempty"` // Transformed features
+	Features      []*Event               `protobuf:"bytes,1,rep,name=features,proto3" json:"features,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -396,10 +397,11 @@ func (x *TransformResponse) GetFeatures() []*Event {
 	return nil
 }
 
+// Python Worker: Inference messages
 type InferenceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Features      []*Event               `protobuf:"bytes,1,rep,name=features,proto3" json:"features,omitempty"`
-	ModelName     string                 `protobuf:"bytes,2,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
+	ModelName     string                 `protobuf:"bytes,1,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
+	Features      map[string]string      `protobuf:"bytes,2,rep,name=features,proto3" json:"features,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -434,13 +436,6 @@ func (*InferenceRequest) Descriptor() ([]byte, []int) {
 	return file_Proto_My_Service_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *InferenceRequest) GetFeatures() []*Event {
-	if x != nil {
-		return x.Features
-	}
-	return nil
-}
-
 func (x *InferenceRequest) GetModelName() string {
 	if x != nil {
 		return x.ModelName
@@ -448,9 +443,17 @@ func (x *InferenceRequest) GetModelName() string {
 	return ""
 }
 
+func (x *InferenceRequest) GetFeatures() map[string]string {
+	if x != nil {
+		return x.Features
+	}
+	return nil
+}
+
 type InferenceResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Prediction    float64                `protobuf:"fixed64,1,opt,name=prediction,proto3" json:"prediction,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,2,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -492,9 +495,17 @@ func (x *InferenceResponse) GetPrediction() float64 {
 	return 0
 }
 
+func (x *InferenceResponse) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+// Python Worker: Drift messages
 type DriftRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DatasetId     string                 `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId,proto3" json:"dataset_id,omitempty"` // e.g., "training_v1" vs "serving_last_hour"
+	DatasetId     string                 `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId,proto3" json:"dataset_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -588,6 +599,7 @@ func (x *DriftResponse) GetDriftDetected() bool {
 	return false
 }
 
+// Python Worker: Training messages
 type TrainRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DatasetPath   string                 `protobuf:"bytes,1,opt,name=dataset_path,json=datasetPath,proto3" json:"dataset_path,omitempty"`
@@ -700,6 +712,7 @@ func (x *TrainResponse) GetAccuracy() float64 {
 	return 0
 }
 
+// Service D: Job Scheduler messages
 type TriggerJobRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	JobName       string                 `protobuf:"bytes,1,opt,name=job_name,json=jobName,proto3" json:"job_name,omitempty"`
@@ -824,15 +837,19 @@ const file_Proto_My_Service_proto_rawDesc = "" +
 	"\x10TransformRequest\x12(\n" +
 	"\x06events\x18\x01 \x03(\v2\x10.myservice.EventR\x06events\"A\n" +
 	"\x11TransformResponse\x12,\n" +
-	"\bfeatures\x18\x01 \x03(\v2\x10.myservice.EventR\bfeatures\"_\n" +
-	"\x10InferenceRequest\x12,\n" +
-	"\bfeatures\x18\x01 \x03(\v2\x10.myservice.EventR\bfeatures\x12\x1d\n" +
+	"\bfeatures\x18\x01 \x03(\v2\x10.myservice.EventR\bfeatures\"\xb5\x01\n" +
+	"\x10InferenceRequest\x12\x1d\n" +
 	"\n" +
-	"model_name\x18\x02 \x01(\tR\tmodelName\"3\n" +
+	"model_name\x18\x01 \x01(\tR\tmodelName\x12E\n" +
+	"\bfeatures\x18\x02 \x03(\v2).myservice.InferenceRequest.FeaturesEntryR\bfeatures\x1a;\n" +
+	"\rFeaturesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"X\n" +
 	"\x11InferenceResponse\x12\x1e\n" +
 	"\n" +
 	"prediction\x18\x01 \x01(\x01R\n" +
-	"prediction\"-\n" +
+	"prediction\x12#\n" +
+	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage\"-\n" +
 	"\fDriftRequest\x12\x1d\n" +
 	"\n" +
 	"dataset_id\x18\x01 \x01(\tR\tdatasetId\"W\n" +
@@ -880,7 +897,7 @@ func file_Proto_My_Service_proto_rawDescGZIP() []byte {
 	return file_Proto_My_Service_proto_rawDescData
 }
 
-var file_Proto_My_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_Proto_My_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_Proto_My_Service_proto_goTypes = []any{
 	(*Event)(nil),              // 0: myservice.Event
 	(*FileChunk)(nil),          // 1: myservice.FileChunk
@@ -897,11 +914,12 @@ var file_Proto_My_Service_proto_goTypes = []any{
 	(*TrainResponse)(nil),      // 12: myservice.TrainResponse
 	(*TriggerJobRequest)(nil),  // 13: myservice.TriggerJobRequest
 	(*TriggerJobResponse)(nil), // 14: myservice.TriggerJobResponse
+	nil,                        // 15: myservice.InferenceRequest.FeaturesEntry
 }
 var file_Proto_My_Service_proto_depIdxs = []int32{
 	0,  // 0: myservice.TransformRequest.events:type_name -> myservice.Event
 	0,  // 1: myservice.TransformResponse.features:type_name -> myservice.Event
-	0,  // 2: myservice.InferenceRequest.features:type_name -> myservice.Event
+	15, // 2: myservice.InferenceRequest.features:type_name -> myservice.InferenceRequest.FeaturesEntry
 	1,  // 3: myservice.FeatureStore.UploadFile:input_type -> myservice.FileChunk
 	3,  // 4: myservice.ModelServing.Predict:input_type -> myservice.PredictRequest
 	13, // 5: myservice.JobScheduler.TriggerJob:input_type -> myservice.TriggerJobRequest
@@ -934,7 +952,7 @@ func file_Proto_My_Service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_Proto_My_Service_proto_rawDesc), len(file_Proto_My_Service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   4,
 		},

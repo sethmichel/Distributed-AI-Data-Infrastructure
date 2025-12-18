@@ -49,12 +49,13 @@ message TransformResponse {
 
 // Python Worker: Inference messages
 message InferenceRequest {
-  repeated Event features = 1;
-  string model_name = 2;
+  string model_name = 1;
+  map<string, string> features = 2;
 }
 
 message InferenceResponse {
   double prediction = 1;
+  string error_message = 2;
 }
 
 // Python Worker: Drift messages
@@ -122,4 +123,3 @@ service PythonWorker {
   // Service D calls this for training
   rpc TrainModel(TrainRequest) returns (TrainResponse);
 }
-

@@ -26,7 +26,11 @@ if _version_not_supported:
 
 
 class FeatureStoreStub(object):
-    """--- Service A: Feature Store ---
+    """============================================
+    Service Definitions
+    ============================================
+
+    --- Service A: Feature Store ---
     """
 
     def __init__(self, channel):
@@ -43,7 +47,11 @@ class FeatureStoreStub(object):
 
 
 class FeatureStoreServicer(object):
-    """--- Service A: Feature Store ---
+    """============================================
+    Service Definitions
+    ============================================
+
+    --- Service A: Feature Store ---
     """
 
     def UploadFile(self, request_iterator, context):
@@ -70,7 +78,11 @@ def add_FeatureStoreServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class FeatureStore(object):
-    """--- Service A: Feature Store ---
+    """============================================
+    Service Definitions
+    ============================================
+
+    --- Service A: Feature Store ---
     """
 
     @staticmethod
@@ -178,11 +190,7 @@ class ModelServing(object):
 
 
 class JobSchedulerStub(object):
-    """--- Service C: Drift Monitoring (Placeholder) ---
-    Service C listens to Kafka, so it might not need a gRPC server for ingestion.
-    But it might expose an API to get drift status.
-
-    --- Service D: Job Scheduler ---
+    """--- Service D: Job Scheduler ---
     """
 
     def __init__(self, channel):
@@ -199,11 +207,7 @@ class JobSchedulerStub(object):
 
 
 class JobSchedulerServicer(object):
-    """--- Service C: Drift Monitoring (Placeholder) ---
-    Service C listens to Kafka, so it might not need a gRPC server for ingestion.
-    But it might expose an API to get drift status.
-
-    --- Service D: Job Scheduler ---
+    """--- Service D: Job Scheduler ---
     """
 
     def TriggerJob(self, request, context):
@@ -229,11 +233,7 @@ def add_JobSchedulerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class JobScheduler(object):
-    """--- Service C: Drift Monitoring (Placeholder) ---
-    Service C listens to Kafka, so it might not need a gRPC server for ingestion.
-    But it might expose an API to get drift status.
-
-    --- Service D: Job Scheduler ---
+    """--- Service D: Job Scheduler ---
     """
 
     @staticmethod

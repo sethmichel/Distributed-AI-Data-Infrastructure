@@ -29,6 +29,17 @@ example:
 		},
 	}
 
+model logs table
+- note that model inputs are text. they can be all different types so we'll need to store it as text
+    CREATE TABLE IF NOT EXISTS model_logs (
+        model_id TEXT,
+        model_version TEXT,
+        model_inputs: TEXT,
+		model_result: TEXT,
+		model_error: TEXT,
+        event_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
 # how to read/write to/from duckdb
 since we have to use a database service to get around locking duckdb files
 - NOTES ABOUT THIS DESIGN
@@ -159,6 +170,8 @@ model artifacts
 - hosts a basic list of which models we have downloaded. services use this to know what the user can be served
 - it's done in a redis set (sadd) for efficient lookups (o1)
 	- we can check for a model with: SISMEMBER prod_models "Loan_Approve"
+	- we can get all models: models, err := rdb.SMembers(ctx, "prod_models").Result() // ([]string, error)
+		- for _, modelName := range models { }
 
 - hosts the job queue for duckdb read/writes. 
 	- key: duckdb_write_queue, key: duckdb_read_queue

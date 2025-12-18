@@ -617,3 +617,5 @@ Details
 5) save the model metadata in redis instead of duckdb
 
 6) service b should scan every few minutes for if there's a new prod model. this means I should figure out a system with model metadata in redis so we can see what's in prod and what's not. beyond what I already do
+
+7) the model server is poorly designed. I have to run the python script separate, from the program (just once, but it's still a startup cost and likely wastes resources for the program). we can get around this by rewriting it so python is a child of the go process. however on investigation of that fix, it seems like a fragile bandaid solution. I don't trust it
