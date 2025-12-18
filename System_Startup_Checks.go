@@ -14,8 +14,18 @@ import (
 	service_b "ai_infra_project/Services/Service_B"
 
 	_ "github.com/marcboeker/go-duckdb"
+	"github.com/redis/go-redis/v9"
 	"github.com/segmentio/kafka-go"
 )
+
+/*
+1. duckdb directory and features table and metadata table
+2. duckdb has model metadata in metadata table
+3. save the required models names into redis so we know what's downloaded
+4. check/start kafka server is running
+5. start docker services (redis, promethius, granfana)
+6. load prod status models into redis on startup
+*/
 
 func CheckDuckDB(app_config_struct *config.App_Config) error {
 	path := app_config_struct.Connections.DuckDBPath
@@ -27,7 +37,7 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 		}
 	}
 
-	// connect to ensure table exists
+	// connect to ensure tables exists
 	db, err := sql.Open("duckdb", path)
 	if err != nil {
 		return fmt.Errorf("failed to open duckdb: %w", err)
@@ -53,6 +63,7 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 	metadataQuery := `
 		CREATE TABLE IF NOT EXISTS model_metadata (
 			model_id TEXT,
+			artifact_type TEXT,
 			version TEXT,
 			trainedDate DATE,
 			status TEXT,
@@ -63,6 +74,66 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 
 	if _, err := db.Exec(metadataQuery); err != nil {
 		return fmt.Errorf("failed to create model_metadata table: %w", err)
+	}
+
+	// check metadata for required models is present (it returns true/false for each model)
+	// these are placeholder models, we can use anything but I just use these basic ones
+	requiredModels := []string{"Loan_Approve", "House_Price", "Coffee_Reccomender"}
+	requiredModelQuery := `
+		SELECT EXISTS (
+			SELECT 1 
+			FROM model_metadata 
+			WHERE model_id = ?
+		);`
+
+	for _, model := range requiredModels {
+		var exists bool
+		err := db.QueryRow(requiredModelQuery, model).Scan(&exists)
+		if err != nil {
+			return fmt.Errorf("failed to check metadata for model %s: %w", model, err)
+		}
+		if !exists {
+			return fmt.Errorf("required model metadata missing for: %s", model)
+		}
+		log.Printf("Validated model metadata for: %s", model)
+	}
+
+	// now add those model names to redis
+	AddModelNamesRedis(requiredModels, app_config_struct)
+
+	return nil
+}
+
+// Write required models to Redis
+// we're using a redis set (sadd) for efficient lookups (o1)
+// we can check for a model with: SISMEMBER prod_models "Loan_Approve"
+func AddModelNamesRedis(requiredModels []string, app_config_struct *config.App_Config) error {
+	redisAddr := app_config_struct.Connections.RedisAddr
+	rdb := redis.NewClient(&redis.Options{
+		Addr: redisAddr,
+	})
+	defer rdb.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // prevent hanging
+	defer cancel()
+
+	// Clear existing key to ensure we don't have stale models
+	if err := rdb.Del(ctx, "prod_models").Err(); err != nil {
+		log.Printf(`Warning: failed to clear prod_models from redis. this was either an error and there were no models to clear.
+		            this is refering to just the names of our downloaded models for other services to reference: %v`, err)
+	}
+
+	// Use SADD to add all models as a set (a O1 redis thing)
+	// We need to convert []string to []interface{} for SAdd
+	if len(requiredModels) > 0 {
+		args := make([]interface{}, len(requiredModels))
+		for i, v := range requiredModels {
+			args[i] = v
+		}
+		if err := rdb.SAdd(ctx, "prod_models", args...).Err(); err != nil {
+			return fmt.Errorf("failed to write required models to redis: %w", err)
+		}
+		log.Printf("Updated 'prod_models' in Redis with %d models.", len(requiredModels))
 	}
 
 	return nil

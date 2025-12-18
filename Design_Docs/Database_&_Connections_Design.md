@@ -1,6 +1,7 @@
 ### Duckdb
 ISSUE: It can only have 1 writer at a time, and multiple readers present possible file lock issues between themselves and the writer.
 SOLUTION: all services use a database handler service for all read/writes to duckdb. each service sends requests to a job queue in redis that's batched until database service does the jobs
+ISSUE: the write appender api made things too complex, I can barely read it. I should rewrite it to be clearer
 
 service A sends this info to kafka & it reads the files into this format and sends to gRPC
 feature storage schema (use appender api)
@@ -17,6 +18,7 @@ metadata is searched for at service b startup (not app startup), service b looks
 example:
 	metadata := ModelMetadata{
 		ModelID:       "credit_risk_v1",
+		ArtifactType   "scaler",
 		Version:       "1.0.0",
 		TrainedDate:   "2023-10-25",
 		Status:        "production",
@@ -72,6 +74,9 @@ since we have to use a database service to get around locking duckdb files
 			var models []ModelMetadata
 			err := dbClient.Query(ctx, "SELECT ...", &models)
 		- and the file will write the results into models
+
+model artifacts
+	- artifacts are saved under the key: model:{model_id}:artifact
 
 - approximetly this
 	1. generate a key
@@ -148,11 +153,21 @@ since we have to use a database service to get around locking duckdb files
 
 
 ### Redis
+- hosts the production model artifacts in bytes. where extention is the file extension
+	- keys: model:<ModelID>:<Extension>
+
+- hosts a basic list of which models we have downloaded. services use this to know what the user can be served
+- it's done in a redis set (sadd) for efficient lookups (o1)
+	- we can check for a model with: SISMEMBER prod_models "Loan_Approve"
+
+- hosts the job queue for duckdb read/writes. 
+	- key: duckdb_write_queue, key: duckdb_read_queue
 
 
 
 ### Azure
-Only stores model artifacts. no other design
+- Each model has its own folder containing all artifacts for that model
+- prod artifacts for each model have "production" at the end of their name
 
 
 ### kafka

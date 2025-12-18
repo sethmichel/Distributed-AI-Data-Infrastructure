@@ -615,3 +615,5 @@ Details
 4) right now I send duckdb read/write requests to redis which the db handler service sees. I likly should use grpc instead
 
 5) save the model metadata in redis instead of duckdb
+
+6) service b should scan every few minutes for if there's a new prod model. this means I should figure out a system with model metadata in redis so we can see what's in prod and what's not. beyond what I already do

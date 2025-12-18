@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"ai_infra_project/Services"
@@ -176,54 +178,79 @@ func (h *modelArtifactHandler) LoadProductionModels(ctx context.Context) error {
 }
 
 // internal helper to download a single model
+// this should handle most file types by converting them to bytes
+// it iterates through each blob looking for folders matching the model name, then for files ending in "production"
 func (h *modelArtifactHandler) downloadAndSave(ctx context.Context, metadata ModelMetadata) error {
 	log.Printf("Starting artifact load for model: %s", metadata.ModelID)
 
-	// Construct the blob path.
-	// Based on "azure_location": "ai-models" and "model_id": "credit_risk_v1",
-	// we assume the structure is {azure_location}/{model_id}.pkl or similar.
-	// We'll look for a file that matches the model_id in that location.
-	blobPath := fmt.Sprintf("%s/%s.pkl", metadata.AzureLocation, metadata.ModelID)
+	// List blobs in the model's folder (ModelID)
+	prefix := metadata.ModelID + "/"
+	pager := h.azureClient.NewListBlobsFlatPager(h.config.ContainerName, &azblob.ListBlobsFlatOptions{
+		Prefix: &prefix,
+	})
 
-	log.Printf("Attempting to download blob: %s from container: %s", blobPath, h.config.ContainerName)
+	foundArtifacts := 0
 
-	// Download from Azure
-	downloadResponse, err := h.azureClient.DownloadStream(ctx, h.config.ContainerName, blobPath, nil)
-	if err != nil {
-		return fmt.Errorf("failed to download blob %s: %w", blobPath, err)
+	for pager.More() {
+		resp, err := pager.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to list blobs for model %s: %w", metadata.ModelID, err)
+		}
+
+		for _, blob := range resp.Segment.BlobItems {
+			blobName := *blob.Name
+
+			// Filter for files ending in "Production" (ignoring extension)
+			ext := filepath.Ext(blobName)
+			nameWithoutExt := strings.TrimSuffix(blobName, ext)
+
+			// Check if it ends with "Production"
+			if strings.HasSuffix(nameWithoutExt, "Production") {
+				log.Printf("Found production artifact: %s", blobName)
+
+				// Download
+				downloadResponse, err := h.azureClient.DownloadStream(ctx, h.config.ContainerName, blobName, nil)
+				if err != nil {
+					log.Printf("Failed to download blob %s: %v", blobName, err)
+					continue
+				}
+
+				data, err := io.ReadAll(downloadResponse.Body)
+				downloadResponse.Body.Close()
+				if err != nil {
+					log.Printf("Failed to read blob body %s: %v", blobName, err)
+					continue
+				}
+
+				// Store in Redis
+				// Key: model:<ModelID>:<Extension>
+				// Remove dot from extension for key
+				cleanExt := strings.TrimPrefix(ext, ".")
+				redisKey := fmt.Sprintf("model:%s:%s", metadata.ModelID, cleanExt)
+
+				pipe := h.redisClient.Pipeline()
+				pipe.Set(ctx, redisKey, data, 0)
+
+				_, err = pipe.Exec(ctx)
+				if err != nil {
+					log.Printf("Failed to save %s to redis: %v", blobName, err)
+					continue
+				}
+
+				log.Printf("Successfully loaded artifact %s into Redis as %s", blobName, redisKey)
+				foundArtifacts++
+			}
+		}
 	}
-	defer downloadResponse.Body.Close()
 
-	// Read content
-	data, err := io.ReadAll(downloadResponse.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read blob body: %w", err)
+	if foundArtifacts == 0 {
+		return fmt.Errorf("no production artifacts found for model %s", metadata.ModelID)
 	}
 
-	log.Printf("Downloaded %d bytes. Storing in Redis...", len(data))
-
-	// Store in Redis
-	// We store the binary artifact.
-	// Key scheme: model:{model_id}:artifact
-	redisKey := fmt.Sprintf("model:%s:artifact", metadata.ModelID)
-
-	// We might also want to store the metadata itself
-	metadataKey := fmt.Sprintf("model:%s:metadata", metadata.ModelID)
-	metadataBytes, _ := json.Marshal(metadata)
-
-	pipe := h.redisClient.Pipeline()
-	pipe.Set(ctx, redisKey, data, 0) // 0 means no expiration
-	pipe.Set(ctx, metadataKey, metadataBytes, 0)
-
-	_, err = pipe.Exec(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to save to redis: %w", err)
-	}
-
-	log.Printf("Successfully loaded model %s into Redis", metadata.ModelID)
 	return nil
 }
 
+// azure model artifacts were already handled by the system startup checks
 func Service_B_Start(redisAddr string) {
 	// get all connections
 	azureModelArtifactHandler, err := CreateNewHandler(redisAddr)
@@ -236,8 +263,9 @@ func Service_B_Start(redisAddr string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	// download prod model artifacts from azure
-	if err := azureModelArtifactHandler.LoadProductionModels(ctx); err != nil {
-		log.Printf("Error loading artifacts: %v", err)
-	}
+	// should have a redis connection
+
+	// should have a user data entry section. they should select the model they want, it should say enter this type of
+	//    input, and should then query the model
+
 }

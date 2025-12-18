@@ -3,16 +3,16 @@ package Services
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 	"time"
 
 	config "ai_infra_project/Global_Configs"
 
-	_ "github.com/marcboeker/go-duckdb"
+	duckdb "github.com/marcboeker/go-duckdb"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -21,15 +21,21 @@ const (
 	RedisWriteQueue = "duckdb_write_queue"
 	RedisReadQueue  = "duckdb_read_queue"
 	BatchInterval   = 4 * time.Second
-	MaxBatchSize    = 100
+	MaxBatchSize    = 1000
 )
 
 // handles DuckDB interactions
+// schema stuff fetches and caches the column order of tables so we can map the incoming json data to the values
+//
+//	required by the appender api (for writes)
 type DBHandler struct {
 	RedisClient *redis.Client
 	DuckDB      *sql.DB
 	Config      *config.App_Config
 	dbLock      sync.Mutex // Serialize access to DuckDB to prevent locking issues
+
+	schemaLock  sync.RWMutex
+	schemaCache map[string][]string
 }
 
 // represents a write request
@@ -47,7 +53,8 @@ type ReadRequest struct {
 // initializes connections and starts processing loops
 func StartDBHandler(ctx context.Context, cfg *config.App_Config) error {
 	handler := &DBHandler{
-		Config: cfg,
+		Config:      cfg,
+		schemaCache: make(map[string][]string), // this is to make the appender api more effiencet it maps columns to variables
 	}
 
 	// Connect to Redis
@@ -95,7 +102,7 @@ func (h *DBHandler) processWrites(ctx context.Context) {
 	}
 }
 
-// handleWriteBatch processes up to MaxBatchSize items from the write queue using a transaction
+// processes up to MaxBatchSize items from the write queue using Appender
 func (h *DBHandler) handleWriteBatch(ctx context.Context) {
 	// 1. Collect requests from Redis
 	var requests []WriteRequest
@@ -121,64 +128,102 @@ func (h *DBHandler) handleWriteBatch(ctx context.Context) {
 		return
 	}
 
-	// 2. Execute Batch in Transaction
+	// 2. Group by Table
+	requestsByTable := make(map[string][]WriteRequest)
+	for _, req := range requests {
+		requestsByTable[req.Table] = append(requestsByTable[req.Table], req)
+	}
+
+	// 3. Execute Appender for each table
+	// Lock to ensure exclusive write access (this is optional)
 	h.dbLock.Lock()
 	defer h.dbLock.Unlock()
 
-	tx, err := h.DuckDB.BeginTx(ctx, nil)
-	if err != nil {
-		log.Printf("Failed to begin transaction: %v", err)
-		// Potential data loss here if we don't handle retry logic,
-		// but for now we log error. BUG
-		return
-	}
-	// Ensure rollback if panic or error before commit
-	defer tx.Rollback()
-
-	successCount := 0
-	for _, req := range requests {
-		if err := h.executeWriteTx(ctx, tx, req); err != nil {
-			log.Printf("Error executing write to %s: %v", req.Table, err)
-			// We continue to try other writes in the batch
+	for table, reqs := range requestsByTable {
+		if err := h.processTableBatch(ctx, table, reqs); err != nil {
+			log.Printf("Error appending batch to table %s: %v", table, err)
 		} else {
-			successCount++
-		}
-	}
-
-	if successCount > 0 {
-		if err := tx.Commit(); err != nil {
-			log.Printf("Failed to commit batch: %v", err)
-		} else {
-			log.Printf("Committed batch of %d writes", successCount)
+			log.Printf("Appended %d rows to %s", len(reqs), table)
 		}
 	}
 }
 
-// executeWriteTx performs the actual DuckDB insertion within a transaction
-func (h *DBHandler) executeWriteTx(ctx context.Context, tx *sql.Tx, req WriteRequest) error {
-	if len(req.Data) == 0 {
-		return nil
+// processTableBatch writes a batch of records to a specific table using the DuckDB Appender API
+func (h *DBHandler) processTableBatch(ctx context.Context, table string, reqs []WriteRequest) error {
+	cols, err := h.getColumns(ctx, table)
+	if err != nil {
+		return fmt.Errorf("failed to get schema: %w", err)
 	}
 
-	// Construct Insert SQL dynamically
-	// Note: This assumes simple key-value mapping to columns.
-	var cols []string
-	var vals []interface{}
-	var placeholders []string
+	// Get a dedicated connection for the Appender
+	conn, err := h.DuckDB.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to open connection: %w", err)
+	}
+	defer conn.Close()
 
-	for k, v := range req.Data {
-		cols = append(cols, k)
-		vals = append(vals, v)
-		placeholders = append(placeholders, "?")
+	return conn.Raw(func(driverConn interface{}) error {
+		dConn, ok := driverConn.(driver.Conn)
+		if !ok {
+			return fmt.Errorf("not a driver.Conn")
+		}
+
+		appender, err := duckdb.NewAppenderFromConn(dConn, "", table)
+		if err != nil {
+			return fmt.Errorf("failed to create appender: %w", err)
+		}
+		defer appender.Close()
+
+		for _, req := range reqs {
+			row := make([]driver.Value, len(cols))
+			for i, colName := range cols {
+				if val, ok := req.Data[colName]; ok {
+					row[i] = val
+				} else {
+					row[i] = nil
+				}
+			}
+
+			if err := appender.AppendRow(row...); err != nil {
+				return fmt.Errorf("append row failed: %w", err)
+			}
+		}
+
+		return appender.Flush()
+	})
+}
+
+// returns the column names for a table, using a cache
+func (h *DBHandler) getColumns(ctx context.Context, table string) ([]string, error) {
+	h.schemaLock.RLock()
+	if cols, ok := h.schemaCache[table]; ok {
+		h.schemaLock.RUnlock()
+		return cols, nil
+	}
+	h.schemaLock.RUnlock()
+
+	h.schemaLock.Lock()
+	defer h.schemaLock.Unlock()
+
+	// Double check
+	if cols, ok := h.schemaCache[table]; ok {
+		return cols, nil
 	}
 
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		req.Table,
-		strings.Join(cols, ", "),
-		strings.Join(placeholders, ", "))
+	// Query schema
+	rows, err := h.DuckDB.QueryContext(ctx, fmt.Sprintf("SELECT * FROM %s WHERE 1=0", table))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-	_, err := tx.ExecContext(ctx, query, vals...)
-	return err
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	h.schemaCache[table] = cols
+	return cols, nil
 }
 
 // processReads handles the Read Queue.
