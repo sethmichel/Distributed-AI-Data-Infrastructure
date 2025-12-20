@@ -83,7 +83,7 @@ since we have to use a database service to get around locking duckdb files
 	- solution: 1 shared function that handles the redis/wait logic, accepts a target interface parameter, parses the db result directly into the calling services structs
 		- services will do something like 
 			var models []ModelMetadata
-			err := dbClient.Query(ctx, "SELECT ...", &models)
+			err := DBServiceClient.Query(ctx, "SELECT ...", &models)
 		- and the file will write the results into models
 
 model artifacts

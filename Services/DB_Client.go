@@ -10,17 +10,17 @@ import (
 )
 
 // handles interactions with the DB Handler Service via Redis
-type DBClient struct {
+type DBJobQueueClient struct {
 	Redis *redis.Client
 }
 
 // creates a reusable client
-func NewDBClient(redisAddr string) (*DBClient, error) {
+func NewDBJobQueueClient(redisAddr string) (*DBJobQueueClient, error) {
 	r := redis.NewClient(&redis.Options{Addr: redisAddr})
 	if err := r.Ping(context.Background()).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to redis: %w", err)
 	}
-	return &DBClient{Redis: r}, nil
+	return &DBJobQueueClient{Redis: r}, nil
 }
 
 // matches the JSON structure sent by DB_Handler_Service
@@ -33,8 +33,8 @@ type responseWrapper struct {
 // Example usage (serice b would write this code):
 //
 //	var models []ModelMetadata
-//	err := dbClient.Query(ctx, "SELECT ...", &models)
-func (c *DBClient) Query(ctx context.Context, query string, target interface{}) error {
+//	err := DBServiceClient.Query(ctx, "SELECT ...", &models)
+func (c *DBJobQueueClient) Query(ctx context.Context, query string, target interface{}) error {
 	// 1. Generate unique key for response
 	responseKey := fmt.Sprintf("resp:%d", time.Now().UnixNano())
 
@@ -88,6 +88,6 @@ func (c *DBClient) Query(ctx context.Context, query string, target interface{}) 
 }
 
 // Close closes the underlying redis connection
-func (c *DBClient) Close() error {
+func (c *DBJobQueueClient) Close() error {
 	return c.Redis.Close()
 }

@@ -25,14 +25,20 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	// 3. Check/create DuckDB
+	// 3. check/create docker containers for promethious, granfana, redis
+	if err := StartDockerServices(); err != nil {
+		log.Fatalf("Docker services check failed: %v", err)
+	}
+
+	// 4. Check/create DuckDB
 	if err := CheckDuckDB(app_config_struct); err != nil {
 		log.Fatalf("DuckDB check failed: %v", err)
 	}
 
-	// 4. check/create docker containers for promethious, granfana, redis
-	if err := StartDockerServices(); err != nil {
-		log.Fatalf("Docker services check failed: %v", err)
+	// Start DB Handler (Must be before any service tries to query it)
+	log.Println("Starting DB Handler...")
+	if err := Services.StartDBHandler(context.Background(), app_config_struct); err != nil {
+		log.Fatalf("Failed to start DB Handler: %v", err)
 	}
 
 	// 5. Load production models (Service B logic)
@@ -46,12 +52,6 @@ func main() {
 	}
 
 	log.Println("All system checks completed successfully.")
-
-	// Start DB Handler
-	log.Println("Starting DB Handler...")
-	if err := Services.StartDBHandler(context.Background(), app_config_struct); err != nil {
-		log.Fatalf("Failed to start DB Handler: %v", err)
-	}
 
 	// SERVICE A
 	log.Println("Starting Service A...")

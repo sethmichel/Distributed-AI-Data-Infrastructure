@@ -65,7 +65,7 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 			model_id TEXT,
 			artifact_type TEXT,
 			version TEXT,
-			trainedDate DATE,
+			trained_date DATE,
 			status TEXT,
 			azure_location TEXT,
 			expected_features STRUCT("index" INTEGER, "name" TEXT, "type" TEXT)[],
@@ -78,7 +78,7 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 
 	// check metadata for required models is present (it returns true/false for each model)
 	// these are placeholder models, we can use anything but I just use these basic ones
-	requiredModels := []string{"Loan_Approve", "House_Price", "Coffee_Reccomender"}
+	requiredModels := []string{"Loan_Approve", "House_Price", "Coffee_Recommender"}
 	requiredModelQuery := `
 		SELECT EXISTS (
 			SELECT 1 
@@ -106,9 +106,9 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 		CREATE TABLE IF NOT EXISTS model_logs (
 			model_id TEXT,
 			model_version TEXT,
-			model_inputs: TEXT,
-			model_result: TEXT,
-			model_error: TEXT,
+			model_inputs TEXT,
+			model_result TEXT,
+			model_error TEXT,
 			event_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);`
 	if _, err := db.Exec(modelLogsQuery); err != nil {

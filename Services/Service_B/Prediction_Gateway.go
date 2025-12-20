@@ -50,11 +50,15 @@ type AzureConfig struct {
 }
 
 // manages the model artifacts read operations from azure to redis
+// what is DBServiceClient? it's a redis connection but it's used to talk to the db service since we route duckdb requests to
+//
+//	a redis job queue. it abstracts the complexity of this away from the other redis connection
+//	it also does the blocking system for the db stuff
 type modelArtifactHandler struct {
-	dbClient    *Services.DBClient
-	redisClient *redis.Client
-	azureClient *azblob.Client
-	config      *AzureConfig
+	redisJobQueueClient *Services.DBJobQueueClient // see comment about why we have this
+	redisClient         *redis.Client
+	azureClient         *azblob.Client
+	config              *AzureConfig
 }
 
 // creates a new handler struct
@@ -86,15 +90,15 @@ func CreateNewHandler(redisAddr string) (*modelArtifactHandler, error) {
 	})
 
 	// Create DB Client
-	db_client, err := Services.NewDBClient(redisAddr)
+	job_queue_db_client, err := Services.NewDBJobQueueClient(redisAddr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create db client: %w", err)
 	}
 
 	return &modelArtifactHandler{
-		dbClient:    db_client,
-		redisClient: redis_client,
-		azureClient: azure_client,
+		redisJobQueueClient: job_queue_db_client,
+		redisClient:         redis_client,
+		azureClient:         azure_client,
 		config: &AzureConfig{
 			ConnectionString: azure_conn_str,
 			ContainerName:    azure_container_name,
@@ -104,7 +108,7 @@ func CreateNewHandler(redisAddr string) (*modelArtifactHandler, error) {
 
 // closes the redis client
 func (h *modelArtifactHandler) CloseRedisClient() error {
-	h.dbClient.Close()
+	h.redisJobQueueClient.Close()
 	return h.redisClient.Close()
 }
 
@@ -119,17 +123,17 @@ func (h *modelArtifactHandler) LoadProductionModels(ctx context.Context) error {
 		SELECT 
 			model_id, 
 			version, 
-			CAST(trainedDate AS VARCHAR) as trained_date, 
+			CAST(trained_date AS VARCHAR) as trained_date, 
 			status, 
 			azure_location, 
-			json_serialize(expected_features) as features_json
+			to_json(expected_features) as features_json
 		FROM model_metadata 
 		WHERE status = 'production'
 	`
 
 	// 2. Make Request via DB Client
 	var rawResults []map[string]interface{}
-	if err := h.dbClient.Query(ctx, query, &rawResults); err != nil {
+	if err := h.redisJobQueueClient.Query(ctx, query, &rawResults); err != nil {
 		return fmt.Errorf("failed to query db service: %w", err)
 	}
 
@@ -261,13 +265,13 @@ func (h *modelArtifactHandler) downloadAndSave(ctx context.Context, metadata Mod
 // Queries DuckDB for the expected features of a given model
 func (h *modelArtifactHandler) GetModelFeatures(ctx context.Context, modelID string) ([]ModelFeature, string, error) {
 	query := fmt.Sprintf(`
-		SELECT version, json_serialize(expected_features) as features_json 
+		SELECT version, to_json(expected_features) as features_json 
 		FROM model_metadata 
 		WHERE model_id = '%s'
 	`, modelID)
 
 	var rawResults []map[string]interface{}
-	if err := h.dbClient.Query(ctx, query, &rawResults); err != nil {
+	if err := h.redisJobQueueClient.Query(ctx, query, &rawResults); err != nil {
 		return nil, "", fmt.Errorf("failed to query model metadata: %w", err)
 	}
 
