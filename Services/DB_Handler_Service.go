@@ -35,7 +35,13 @@ type DBHandler struct {
 	dbLock      sync.Mutex // Serialize access to DuckDB to prevent locking issues
 
 	schemaLock  sync.RWMutex
-	schemaCache map[string][]string
+	schemaCache map[string][]ColumnInfo
+}
+
+// we need this for a conflict of timestamps between the duckdb appender api and sending data as json
+type ColumnInfo struct {
+	Name string
+	Type string
 }
 
 // represents a write request
@@ -54,7 +60,7 @@ type ReadRequest struct {
 func StartDBHandler(ctx context.Context, cfg *config.App_Config) error {
 	handler := &DBHandler{
 		Config:      cfg,
-		schemaCache: make(map[string][]string), // this is to make the appender api more effiencet it maps columns to variables
+		schemaCache: make(map[string][]ColumnInfo), // this is to make the appender api more effiencet it maps columns to variables
 	}
 
 	// Connect to Redis
@@ -176,8 +182,19 @@ func (h *DBHandler) processTableBatch(ctx context.Context, table string, reqs []
 
 		for _, req := range reqs {
 			row := make([]driver.Value, len(cols))
-			for i, colName := range cols {
-				if val, ok := req.Data[colName]; ok {
+			for i, colInfo := range cols {
+				if val, ok := req.Data[colInfo.Name]; ok {
+					// Handle Type Conversions (JSON unmarshals everything to float64/string/bool)
+					// timestamp is a special problem with this system since it's sent as json but the appender api expects it as time.Time
+					if colInfo.Type == "TIMESTAMP" {
+						if strVal, ok := val.(string); ok {
+							// Try parsing common formats
+							if t, err := time.Parse(time.RFC3339, strVal); err == nil {
+								row[i] = t
+								continue
+							}
+						}
+					}
 					row[i] = val
 				} else {
 					row[i] = nil
@@ -194,7 +211,7 @@ func (h *DBHandler) processTableBatch(ctx context.Context, table string, reqs []
 }
 
 // returns the column names for a table, using a cache
-func (h *DBHandler) getColumns(ctx context.Context, table string) ([]string, error) {
+func (h *DBHandler) getColumns(ctx context.Context, table string) ([]ColumnInfo, error) {
 	h.schemaLock.RLock()
 	if cols, ok := h.schemaCache[table]; ok {
 		h.schemaLock.RUnlock()
@@ -217,9 +234,17 @@ func (h *DBHandler) getColumns(ctx context.Context, table string) ([]string, err
 	}
 	defer rows.Close()
 
-	cols, err := rows.Columns()
+	colTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return nil, err
+	}
+
+	var cols []ColumnInfo
+	for _, ct := range colTypes {
+		cols = append(cols, ColumnInfo{
+			Name: ct.Name(),
+			Type: ct.DatabaseTypeName(),
+		})
 	}
 
 	h.schemaCache[table] = cols

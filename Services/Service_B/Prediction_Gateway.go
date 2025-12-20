@@ -196,7 +196,7 @@ func (h *modelArtifactHandler) downloadAndSave(ctx context.Context, metadata Mod
 	log.Printf("Starting artifact load for model: %s", metadata.ModelID)
 
 	// List blobs in the model's folder (ModelID)
-	prefix := metadata.ModelID + "/"
+	prefix := metadata.AzureLocation
 	pager := h.azureClient.NewListBlobsFlatPager(h.config.ContainerName, &azblob.ListBlobsFlatOptions{
 		Prefix: &prefix,
 	})
