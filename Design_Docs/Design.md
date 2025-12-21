@@ -1,11 +1,3 @@
-**Overview**
-
-Note: the target scale of this is small: it's a personal/learning project
-
-A Distributed AI Data Platform (Feature Store + Model Serving + Drift Monitoring + Batch/Streaming Pipelines)
-
-This is the infrastructure to support scalable ml models
-
 # fast/basic overview of the services
 Service A: Distributed Feature Store
 - Ingests streaming + batch data

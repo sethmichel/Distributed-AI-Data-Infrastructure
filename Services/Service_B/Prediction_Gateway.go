@@ -407,7 +407,9 @@ func logModelPrediction(ctx context.Context, redisClient *redis.Client, modelID,
 
 // azure model artifacts were already handled by the system startup checks
 // python worker has to start here. it's what we use to run the models
-func Service_B_Start(redisAddr string, app_config_struct *config.App_Config) {
+func Service_B_Start(app_config_struct *config.App_Config) {
+	redisAddr := app_config_struct.Connections.RedisAddr
+
 	// --- Start Python Worker ---
 	log.Println("Starting Python Model Server...")
 	pyProcess, err := startPythonWorker()

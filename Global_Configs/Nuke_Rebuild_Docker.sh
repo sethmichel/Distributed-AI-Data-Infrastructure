@@ -1,9 +1,9 @@
 #!/bin/bash
 echo "Tearing down containers and volumes..."
-docker compose -f Docker_Compose.yml down -v
+docker compose -f docker_compose.yml down -v
 
 echo "Rebuilding and starting containers..."
-docker compose -f Docker_Compose.yml up -d --build
+docker compose -f docker_compose.yml up -d --build
 
 echo "Done! Services are running."
-docker compose -f Docker_Compose.yml ps
+docker compose -f docker_compose.yml ps

@@ -9,7 +9,9 @@ import (
 
 	config "ai_infra_project/Global_Configs"
 	"ai_infra_project/Services"
-	service_a "ai_infra_project/Services/Service_A"
+
+	//service_a "ai_infra_project/Services/Service_A"
+	service_b "ai_infra_project/Services/Service_B"
 )
 
 func main() {
@@ -35,7 +37,7 @@ func main() {
 		log.Fatalf("DuckDB check failed: %v", err)
 	}
 
-	// Start DB Handler (Must be before any service tries to query it)
+	// START DB SERVICE (Must be before any service tries to query it)
 	log.Println("Starting DB Handler...")
 	if err := Services.StartDBHandler(context.Background(), app_config_struct); err != nil {
 		log.Fatalf("Failed to start DB Handler: %v", err)
@@ -54,10 +56,14 @@ func main() {
 	log.Println("All system checks completed successfully.")
 
 	// SERVICE A
-	log.Println("Starting Service A...")
-	go service_a.ServiceAStart(app_config_struct)
+	//log.Println("Starting Service A...")
+	//go service_a.ServiceAStart(app_config_struct)
 
 	log.Println("All system checks completed successfully. System is running. Press CTRL+C to stop.")
+
+	// SERVICE B
+	log.Println("Starting service B...")
+	go service_b.Service_B_Start(app_config_struct)
 
 	// Wait for interrupt signal
 	<-c
