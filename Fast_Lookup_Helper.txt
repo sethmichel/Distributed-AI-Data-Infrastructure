@@ -1,0 +1,42 @@
+This is just where I put key info so I don't have to look in a bunch of places for it
+
+DUCKDB
+
+CREATE TABLE IF NOT EXISTS model_metadata (
+    model_id TEXT,
+    artifact_type TEXT,
+    version TEXT,
+    trained_date DATE,
+    model_drift_score DOUBLE,
+    status TEXT,
+    azure_location TEXT,
+    expected_features STRUCT("index" INTEGER, "name" TEXT, "type" TEXT, "drift_score" DOUBLE)[],
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);`
+this is premade for each model, or service d adds it
+service d updates the trained date, version, misc info
+service c updates the model drift and feature drift
+
+CREATE TABLE IF NOT EXISTS model_logs (
+    model_id TEXT,
+    model_version TEXT,
+    model_inputs TEXT,
+    model_result TEXT,
+    model_error TEXT,
+    event_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);`
+service b writes model event logs here
+
+CREATE TABLE IF NOT EXISTS features (
+    entity_id TEXT,
+    feature_name TEXT,
+    value DOUBLE,
+    event_timestamp TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);`
+service a writes cleaned data here
+
+--------------------------------------------------------------------
+
+model names
+{"Loan_Approve", "House_Price", "Coffee_Recommender"}

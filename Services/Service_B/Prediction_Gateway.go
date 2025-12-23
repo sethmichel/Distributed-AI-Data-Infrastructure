@@ -372,6 +372,7 @@ func startPythonWorker() (*os.Process, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	// this is a background process. this go script will keep running as this python script is running
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start python command: %w", err)
 	}

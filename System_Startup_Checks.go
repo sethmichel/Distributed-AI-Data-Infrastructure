@@ -60,15 +60,17 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 	log.Printf("features table is present in duckdb")
 
 	// create model metadata table if it doesn't exist
+	// expected_features STRUCT is a list, so I can add 1 for each feature
 	metadataTableQuery := `
 		CREATE TABLE IF NOT EXISTS model_metadata (
 			model_id TEXT,
 			artifact_type TEXT,
 			version TEXT,
 			trained_date DATE,
+			model_drift_score DOUBLE,
 			status TEXT,
 			azure_location TEXT,
-			expected_features STRUCT("index" INTEGER, "name" TEXT, "type" TEXT)[],
+			expected_features STRUCT("index" INTEGER, "name" TEXT, "type" TEXT, "drift_score" DOUBLE)[],
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);`
 
