@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.33.2
-// source: Proto/My_Service.proto
+// source: My_Service.proto
 
 package myservice
 
@@ -34,7 +34,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_Proto_My_Service_proto_msgTypes[0]
+	mi := &file_My_Service_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +46,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[0]
+	mi := &file_My_Service_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +59,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{0}
+	return file_My_Service_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Event) GetEntityId() string {
@@ -101,7 +101,7 @@ type FileChunk struct {
 
 func (x *FileChunk) Reset() {
 	*x = FileChunk{}
-	mi := &file_Proto_My_Service_proto_msgTypes[1]
+	mi := &file_My_Service_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -113,7 +113,7 @@ func (x *FileChunk) String() string {
 func (*FileChunk) ProtoMessage() {}
 
 func (x *FileChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[1]
+	mi := &file_My_Service_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -126,7 +126,7 @@ func (x *FileChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileChunk.ProtoReflect.Descriptor instead.
 func (*FileChunk) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{1}
+	return file_My_Service_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *FileChunk) GetContent() []byte {
@@ -153,7 +153,7 @@ type UploadStatus struct {
 
 func (x *UploadStatus) Reset() {
 	*x = UploadStatus{}
-	mi := &file_Proto_My_Service_proto_msgTypes[2]
+	mi := &file_My_Service_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -165,7 +165,7 @@ func (x *UploadStatus) String() string {
 func (*UploadStatus) ProtoMessage() {}
 
 func (x *UploadStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[2]
+	mi := &file_My_Service_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -178,7 +178,7 @@ func (x *UploadStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadStatus.ProtoReflect.Descriptor instead.
 func (*UploadStatus) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{2}
+	return file_My_Service_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *UploadStatus) GetSuccess() bool {
@@ -206,7 +206,7 @@ type PredictRequest struct {
 
 func (x *PredictRequest) Reset() {
 	*x = PredictRequest{}
-	mi := &file_Proto_My_Service_proto_msgTypes[3]
+	mi := &file_My_Service_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -218,7 +218,7 @@ func (x *PredictRequest) String() string {
 func (*PredictRequest) ProtoMessage() {}
 
 func (x *PredictRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[3]
+	mi := &file_My_Service_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -231,7 +231,7 @@ func (x *PredictRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PredictRequest.ProtoReflect.Descriptor instead.
 func (*PredictRequest) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{3}
+	return file_My_Service_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PredictRequest) GetEntityId() string {
@@ -259,7 +259,7 @@ type PredictResponse struct {
 
 func (x *PredictResponse) Reset() {
 	*x = PredictResponse{}
-	mi := &file_Proto_My_Service_proto_msgTypes[4]
+	mi := &file_My_Service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -271,7 +271,7 @@ func (x *PredictResponse) String() string {
 func (*PredictResponse) ProtoMessage() {}
 
 func (x *PredictResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[4]
+	mi := &file_My_Service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -284,7 +284,7 @@ func (x *PredictResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PredictResponse.ProtoReflect.Descriptor instead.
 func (*PredictResponse) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{4}
+	return file_My_Service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PredictResponse) GetEntityId() string {
@@ -318,7 +318,7 @@ type TransformRequest struct {
 
 func (x *TransformRequest) Reset() {
 	*x = TransformRequest{}
-	mi := &file_Proto_My_Service_proto_msgTypes[5]
+	mi := &file_My_Service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -330,7 +330,7 @@ func (x *TransformRequest) String() string {
 func (*TransformRequest) ProtoMessage() {}
 
 func (x *TransformRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[5]
+	mi := &file_My_Service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -343,7 +343,7 @@ func (x *TransformRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransformRequest.ProtoReflect.Descriptor instead.
 func (*TransformRequest) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{5}
+	return file_My_Service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *TransformRequest) GetEvents() []*Event {
@@ -362,7 +362,7 @@ type TransformResponse struct {
 
 func (x *TransformResponse) Reset() {
 	*x = TransformResponse{}
-	mi := &file_Proto_My_Service_proto_msgTypes[6]
+	mi := &file_My_Service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -374,7 +374,7 @@ func (x *TransformResponse) String() string {
 func (*TransformResponse) ProtoMessage() {}
 
 func (x *TransformResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[6]
+	mi := &file_My_Service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -387,7 +387,7 @@ func (x *TransformResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransformResponse.ProtoReflect.Descriptor instead.
 func (*TransformResponse) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{6}
+	return file_My_Service_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *TransformResponse) GetFeatures() []*Event {
@@ -408,7 +408,7 @@ type InferenceRequest struct {
 
 func (x *InferenceRequest) Reset() {
 	*x = InferenceRequest{}
-	mi := &file_Proto_My_Service_proto_msgTypes[7]
+	mi := &file_My_Service_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -420,7 +420,7 @@ func (x *InferenceRequest) String() string {
 func (*InferenceRequest) ProtoMessage() {}
 
 func (x *InferenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[7]
+	mi := &file_My_Service_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -433,7 +433,7 @@ func (x *InferenceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InferenceRequest.ProtoReflect.Descriptor instead.
 func (*InferenceRequest) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{7}
+	return file_My_Service_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *InferenceRequest) GetModelName() string {
@@ -460,7 +460,7 @@ type InferenceResponse struct {
 
 func (x *InferenceResponse) Reset() {
 	*x = InferenceResponse{}
-	mi := &file_Proto_My_Service_proto_msgTypes[8]
+	mi := &file_My_Service_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -472,7 +472,7 @@ func (x *InferenceResponse) String() string {
 func (*InferenceResponse) ProtoMessage() {}
 
 func (x *InferenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[8]
+	mi := &file_My_Service_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -485,7 +485,7 @@ func (x *InferenceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InferenceResponse.ProtoReflect.Descriptor instead.
 func (*InferenceResponse) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{8}
+	return file_My_Service_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *InferenceResponse) GetPrediction() float64 {
@@ -504,15 +504,17 @@ func (x *InferenceResponse) GetErrorMessage() string {
 
 // Python Worker: Drift messages
 type DriftRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DatasetId     string                 `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId,proto3" json:"dataset_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// If empty, analyze all production models.
+	// Can specify specific model_id if needed in future.
+	ModelId       string `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DriftRequest) Reset() {
 	*x = DriftRequest{}
-	mi := &file_Proto_My_Service_proto_msgTypes[9]
+	mi := &file_My_Service_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -524,7 +526,7 @@ func (x *DriftRequest) String() string {
 func (*DriftRequest) ProtoMessage() {}
 
 func (x *DriftRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[9]
+	mi := &file_My_Service_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -537,27 +539,170 @@ func (x *DriftRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DriftRequest.ProtoReflect.Descriptor instead.
 func (*DriftRequest) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{9}
+	return file_My_Service_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *DriftRequest) GetDatasetId() string {
+func (x *DriftRequest) GetModelId() string {
 	if x != nil {
-		return x.DatasetId
+		return x.ModelId
 	}
 	return ""
 }
 
+type FeatureDriftMetric struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FeatureName   string                 `protobuf:"bytes,1,opt,name=feature_name,json=featureName,proto3" json:"feature_name,omitempty"`
+	KsStat        float64                `protobuf:"fixed64,2,opt,name=ks_stat,json=ksStat,proto3" json:"ks_stat,omitempty"`
+	KsPValue      float64                `protobuf:"fixed64,3,opt,name=ks_p_value,json=ksPValue,proto3" json:"ks_p_value,omitempty"`
+	Psi           float64                `protobuf:"fixed64,4,opt,name=psi,proto3" json:"psi,omitempty"`
+	KlDivergence  float64                `protobuf:"fixed64,5,opt,name=kl_divergence,json=klDivergence,proto3" json:"kl_divergence,omitempty"`
+	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"` // "PASS", "WARNING", "CRITICAL"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FeatureDriftMetric) Reset() {
+	*x = FeatureDriftMetric{}
+	mi := &file_My_Service_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FeatureDriftMetric) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FeatureDriftMetric) ProtoMessage() {}
+
+func (x *FeatureDriftMetric) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FeatureDriftMetric.ProtoReflect.Descriptor instead.
+func (*FeatureDriftMetric) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *FeatureDriftMetric) GetFeatureName() string {
+	if x != nil {
+		return x.FeatureName
+	}
+	return ""
+}
+
+func (x *FeatureDriftMetric) GetKsStat() float64 {
+	if x != nil {
+		return x.KsStat
+	}
+	return 0
+}
+
+func (x *FeatureDriftMetric) GetKsPValue() float64 {
+	if x != nil {
+		return x.KsPValue
+	}
+	return 0
+}
+
+func (x *FeatureDriftMetric) GetPsi() float64 {
+	if x != nil {
+		return x.Psi
+	}
+	return 0
+}
+
+func (x *FeatureDriftMetric) GetKlDivergence() float64 {
+	if x != nil {
+		return x.KlDivergence
+	}
+	return 0
+}
+
+func (x *FeatureDriftMetric) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+type ModelDriftResult struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ModelId        string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	DriftDetected  bool                   `protobuf:"varint,2,opt,name=drift_detected,json=driftDetected,proto3" json:"drift_detected,omitempty"`
+	FeatureMetrics []*FeatureDriftMetric  `protobuf:"bytes,3,rep,name=feature_metrics,json=featureMetrics,proto3" json:"feature_metrics,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ModelDriftResult) Reset() {
+	*x = ModelDriftResult{}
+	mi := &file_My_Service_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModelDriftResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModelDriftResult) ProtoMessage() {}
+
+func (x *ModelDriftResult) ProtoReflect() protoreflect.Message {
+	mi := &file_My_Service_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModelDriftResult.ProtoReflect.Descriptor instead.
+func (*ModelDriftResult) Descriptor() ([]byte, []int) {
+	return file_My_Service_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ModelDriftResult) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *ModelDriftResult) GetDriftDetected() bool {
+	if x != nil {
+		return x.DriftDetected
+	}
+	return false
+}
+
+func (x *ModelDriftResult) GetFeatureMetrics() []*FeatureDriftMetric {
+	if x != nil {
+		return x.FeatureMetrics
+	}
+	return nil
+}
+
 type DriftResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DriftScore    float64                `protobuf:"fixed64,1,opt,name=drift_score,json=driftScore,proto3" json:"drift_score,omitempty"`
-	DriftDetected bool                   `protobuf:"varint,2,opt,name=drift_detected,json=driftDetected,proto3" json:"drift_detected,omitempty"`
+	ModelResults  []*ModelDriftResult    `protobuf:"bytes,1,rep,name=model_results,json=modelResults,proto3" json:"model_results,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DriftResponse) Reset() {
 	*x = DriftResponse{}
-	mi := &file_Proto_My_Service_proto_msgTypes[10]
+	mi := &file_My_Service_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -569,7 +714,7 @@ func (x *DriftResponse) String() string {
 func (*DriftResponse) ProtoMessage() {}
 
 func (x *DriftResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[10]
+	mi := &file_My_Service_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -582,21 +727,14 @@ func (x *DriftResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DriftResponse.ProtoReflect.Descriptor instead.
 func (*DriftResponse) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{10}
+	return file_My_Service_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *DriftResponse) GetDriftScore() float64 {
+func (x *DriftResponse) GetModelResults() []*ModelDriftResult {
 	if x != nil {
-		return x.DriftScore
+		return x.ModelResults
 	}
-	return 0
-}
-
-func (x *DriftResponse) GetDriftDetected() bool {
-	if x != nil {
-		return x.DriftDetected
-	}
-	return false
+	return nil
 }
 
 // Python Worker: Training messages
@@ -610,7 +748,7 @@ type TrainRequest struct {
 
 func (x *TrainRequest) Reset() {
 	*x = TrainRequest{}
-	mi := &file_Proto_My_Service_proto_msgTypes[11]
+	mi := &file_My_Service_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -622,7 +760,7 @@ func (x *TrainRequest) String() string {
 func (*TrainRequest) ProtoMessage() {}
 
 func (x *TrainRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[11]
+	mi := &file_My_Service_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -635,7 +773,7 @@ func (x *TrainRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrainRequest.ProtoReflect.Descriptor instead.
 func (*TrainRequest) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{11}
+	return file_My_Service_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *TrainRequest) GetDatasetPath() string {
@@ -663,7 +801,7 @@ type TrainResponse struct {
 
 func (x *TrainResponse) Reset() {
 	*x = TrainResponse{}
-	mi := &file_Proto_My_Service_proto_msgTypes[12]
+	mi := &file_My_Service_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -675,7 +813,7 @@ func (x *TrainResponse) String() string {
 func (*TrainResponse) ProtoMessage() {}
 
 func (x *TrainResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[12]
+	mi := &file_My_Service_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -688,7 +826,7 @@ func (x *TrainResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrainResponse.ProtoReflect.Descriptor instead.
 func (*TrainResponse) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{12}
+	return file_My_Service_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *TrainResponse) GetSuccess() bool {
@@ -722,7 +860,7 @@ type TriggerJobRequest struct {
 
 func (x *TriggerJobRequest) Reset() {
 	*x = TriggerJobRequest{}
-	mi := &file_Proto_My_Service_proto_msgTypes[13]
+	mi := &file_My_Service_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -734,7 +872,7 @@ func (x *TriggerJobRequest) String() string {
 func (*TriggerJobRequest) ProtoMessage() {}
 
 func (x *TriggerJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[13]
+	mi := &file_My_Service_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -747,7 +885,7 @@ func (x *TriggerJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TriggerJobRequest.ProtoReflect.Descriptor instead.
 func (*TriggerJobRequest) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{13}
+	return file_My_Service_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *TriggerJobRequest) GetJobName() string {
@@ -767,7 +905,7 @@ type TriggerJobResponse struct {
 
 func (x *TriggerJobResponse) Reset() {
 	*x = TriggerJobResponse{}
-	mi := &file_Proto_My_Service_proto_msgTypes[14]
+	mi := &file_My_Service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -779,7 +917,7 @@ func (x *TriggerJobResponse) String() string {
 func (*TriggerJobResponse) ProtoMessage() {}
 
 func (x *TriggerJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_Proto_My_Service_proto_msgTypes[14]
+	mi := &file_My_Service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -792,7 +930,7 @@ func (x *TriggerJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TriggerJobResponse.ProtoReflect.Descriptor instead.
 func (*TriggerJobResponse) Descriptor() ([]byte, []int) {
-	return file_Proto_My_Service_proto_rawDescGZIP(), []int{14}
+	return file_My_Service_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *TriggerJobResponse) GetSuccess() bool {
@@ -809,11 +947,11 @@ func (x *TriggerJobResponse) GetJobId() string {
 	return ""
 }
 
-var File_Proto_My_Service_proto protoreflect.FileDescriptor
+var File_My_Service_proto protoreflect.FileDescriptor
 
-const file_Proto_My_Service_proto_rawDesc = "" +
+const file_My_Service_proto_rawDesc = "" +
 	"\n" +
-	"\x16Proto/My_Service.proto\x12\tmyservice\"{\n" +
+	"\x10My_Service.proto\x12\tmyservice\"{\n" +
 	"\x05Event\x12\x1b\n" +
 	"\tentity_id\x18\x01 \x01(\tR\bentityId\x12!\n" +
 	"\ffeature_name\x18\x02 \x01(\tR\vfeatureName\x12\x14\n" +
@@ -849,14 +987,23 @@ const file_Proto_My_Service_proto_rawDesc = "" +
 	"\n" +
 	"prediction\x18\x01 \x01(\x01R\n" +
 	"prediction\x12#\n" +
-	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage\"-\n" +
-	"\fDriftRequest\x12\x1d\n" +
+	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage\")\n" +
+	"\fDriftRequest\x12\x19\n" +
+	"\bmodel_id\x18\x01 \x01(\tR\amodelId\"\xbd\x01\n" +
+	"\x12FeatureDriftMetric\x12!\n" +
+	"\ffeature_name\x18\x01 \x01(\tR\vfeatureName\x12\x17\n" +
+	"\aks_stat\x18\x02 \x01(\x01R\x06ksStat\x12\x1c\n" +
 	"\n" +
-	"dataset_id\x18\x01 \x01(\tR\tdatasetId\"W\n" +
-	"\rDriftResponse\x12\x1f\n" +
-	"\vdrift_score\x18\x01 \x01(\x01R\n" +
-	"driftScore\x12%\n" +
-	"\x0edrift_detected\x18\x02 \x01(\bR\rdriftDetected\"P\n" +
+	"ks_p_value\x18\x03 \x01(\x01R\bksPValue\x12\x10\n" +
+	"\x03psi\x18\x04 \x01(\x01R\x03psi\x12#\n" +
+	"\rkl_divergence\x18\x05 \x01(\x01R\fklDivergence\x12\x16\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\"\x9c\x01\n" +
+	"\x10ModelDriftResult\x12\x19\n" +
+	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12%\n" +
+	"\x0edrift_detected\x18\x02 \x01(\bR\rdriftDetected\x12F\n" +
+	"\x0ffeature_metrics\x18\x03 \x03(\v2\x1d.myservice.FeatureDriftMetricR\x0efeatureMetrics\"Q\n" +
+	"\rDriftResponse\x12@\n" +
+	"\rmodel_results\x18\x01 \x03(\v2\x1b.myservice.ModelDriftResultR\fmodelResults\"P\n" +
 	"\fTrainRequest\x12!\n" +
 	"\fdataset_path\x18\x01 \x01(\tR\vdatasetPath\x12\x1d\n" +
 	"\n" +
@@ -886,19 +1033,19 @@ const file_Proto_My_Service_proto_rawDesc = "" +
 	"TrainModel\x12\x17.myservice.TrainRequest\x1a\x18.myservice.TrainResponseB\x0eZ\f./;myserviceb\x06proto3"
 
 var (
-	file_Proto_My_Service_proto_rawDescOnce sync.Once
-	file_Proto_My_Service_proto_rawDescData []byte
+	file_My_Service_proto_rawDescOnce sync.Once
+	file_My_Service_proto_rawDescData []byte
 )
 
-func file_Proto_My_Service_proto_rawDescGZIP() []byte {
-	file_Proto_My_Service_proto_rawDescOnce.Do(func() {
-		file_Proto_My_Service_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_Proto_My_Service_proto_rawDesc), len(file_Proto_My_Service_proto_rawDesc)))
+func file_My_Service_proto_rawDescGZIP() []byte {
+	file_My_Service_proto_rawDescOnce.Do(func() {
+		file_My_Service_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_My_Service_proto_rawDesc), len(file_My_Service_proto_rawDesc)))
 	})
-	return file_Proto_My_Service_proto_rawDescData
+	return file_My_Service_proto_rawDescData
 }
 
-var file_Proto_My_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
-var file_Proto_My_Service_proto_goTypes = []any{
+var file_My_Service_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_My_Service_proto_goTypes = []any{
 	(*Event)(nil),              // 0: myservice.Event
 	(*FileChunk)(nil),          // 1: myservice.FileChunk
 	(*UploadStatus)(nil),       // 2: myservice.UploadStatus
@@ -909,58 +1056,62 @@ var file_Proto_My_Service_proto_goTypes = []any{
 	(*InferenceRequest)(nil),   // 7: myservice.InferenceRequest
 	(*InferenceResponse)(nil),  // 8: myservice.InferenceResponse
 	(*DriftRequest)(nil),       // 9: myservice.DriftRequest
-	(*DriftResponse)(nil),      // 10: myservice.DriftResponse
-	(*TrainRequest)(nil),       // 11: myservice.TrainRequest
-	(*TrainResponse)(nil),      // 12: myservice.TrainResponse
-	(*TriggerJobRequest)(nil),  // 13: myservice.TriggerJobRequest
-	(*TriggerJobResponse)(nil), // 14: myservice.TriggerJobResponse
-	nil,                        // 15: myservice.InferenceRequest.FeaturesEntry
+	(*FeatureDriftMetric)(nil), // 10: myservice.FeatureDriftMetric
+	(*ModelDriftResult)(nil),   // 11: myservice.ModelDriftResult
+	(*DriftResponse)(nil),      // 12: myservice.DriftResponse
+	(*TrainRequest)(nil),       // 13: myservice.TrainRequest
+	(*TrainResponse)(nil),      // 14: myservice.TrainResponse
+	(*TriggerJobRequest)(nil),  // 15: myservice.TriggerJobRequest
+	(*TriggerJobResponse)(nil), // 16: myservice.TriggerJobResponse
+	nil,                        // 17: myservice.InferenceRequest.FeaturesEntry
 }
-var file_Proto_My_Service_proto_depIdxs = []int32{
+var file_My_Service_proto_depIdxs = []int32{
 	0,  // 0: myservice.TransformRequest.events:type_name -> myservice.Event
 	0,  // 1: myservice.TransformResponse.features:type_name -> myservice.Event
-	15, // 2: myservice.InferenceRequest.features:type_name -> myservice.InferenceRequest.FeaturesEntry
-	1,  // 3: myservice.FeatureStore.UploadFile:input_type -> myservice.FileChunk
-	3,  // 4: myservice.ModelServing.Predict:input_type -> myservice.PredictRequest
-	13, // 5: myservice.JobScheduler.TriggerJob:input_type -> myservice.TriggerJobRequest
-	5,  // 6: myservice.PythonWorker.TransformFeatures:input_type -> myservice.TransformRequest
-	7,  // 7: myservice.PythonWorker.RunInference:input_type -> myservice.InferenceRequest
-	9,  // 8: myservice.PythonWorker.CalculateDrift:input_type -> myservice.DriftRequest
-	11, // 9: myservice.PythonWorker.TrainModel:input_type -> myservice.TrainRequest
-	2,  // 10: myservice.FeatureStore.UploadFile:output_type -> myservice.UploadStatus
-	4,  // 11: myservice.ModelServing.Predict:output_type -> myservice.PredictResponse
-	14, // 12: myservice.JobScheduler.TriggerJob:output_type -> myservice.TriggerJobResponse
-	6,  // 13: myservice.PythonWorker.TransformFeatures:output_type -> myservice.TransformResponse
-	8,  // 14: myservice.PythonWorker.RunInference:output_type -> myservice.InferenceResponse
-	10, // 15: myservice.PythonWorker.CalculateDrift:output_type -> myservice.DriftResponse
-	12, // 16: myservice.PythonWorker.TrainModel:output_type -> myservice.TrainResponse
-	10, // [10:17] is the sub-list for method output_type
-	3,  // [3:10] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	17, // 2: myservice.InferenceRequest.features:type_name -> myservice.InferenceRequest.FeaturesEntry
+	10, // 3: myservice.ModelDriftResult.feature_metrics:type_name -> myservice.FeatureDriftMetric
+	11, // 4: myservice.DriftResponse.model_results:type_name -> myservice.ModelDriftResult
+	1,  // 5: myservice.FeatureStore.UploadFile:input_type -> myservice.FileChunk
+	3,  // 6: myservice.ModelServing.Predict:input_type -> myservice.PredictRequest
+	15, // 7: myservice.JobScheduler.TriggerJob:input_type -> myservice.TriggerJobRequest
+	5,  // 8: myservice.PythonWorker.TransformFeatures:input_type -> myservice.TransformRequest
+	7,  // 9: myservice.PythonWorker.RunInference:input_type -> myservice.InferenceRequest
+	9,  // 10: myservice.PythonWorker.CalculateDrift:input_type -> myservice.DriftRequest
+	13, // 11: myservice.PythonWorker.TrainModel:input_type -> myservice.TrainRequest
+	2,  // 12: myservice.FeatureStore.UploadFile:output_type -> myservice.UploadStatus
+	4,  // 13: myservice.ModelServing.Predict:output_type -> myservice.PredictResponse
+	16, // 14: myservice.JobScheduler.TriggerJob:output_type -> myservice.TriggerJobResponse
+	6,  // 15: myservice.PythonWorker.TransformFeatures:output_type -> myservice.TransformResponse
+	8,  // 16: myservice.PythonWorker.RunInference:output_type -> myservice.InferenceResponse
+	12, // 17: myservice.PythonWorker.CalculateDrift:output_type -> myservice.DriftResponse
+	14, // 18: myservice.PythonWorker.TrainModel:output_type -> myservice.TrainResponse
+	12, // [12:19] is the sub-list for method output_type
+	5,  // [5:12] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_Proto_My_Service_proto_init() }
-func file_Proto_My_Service_proto_init() {
-	if File_Proto_My_Service_proto != nil {
+func init() { file_My_Service_proto_init() }
+func file_My_Service_proto_init() {
+	if File_My_Service_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_Proto_My_Service_proto_rawDesc), len(file_Proto_My_Service_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_My_Service_proto_rawDesc), len(file_My_Service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   4,
 		},
-		GoTypes:           file_Proto_My_Service_proto_goTypes,
-		DependencyIndexes: file_Proto_My_Service_proto_depIdxs,
-		MessageInfos:      file_Proto_My_Service_proto_msgTypes,
+		GoTypes:           file_My_Service_proto_goTypes,
+		DependencyIndexes: file_My_Service_proto_depIdxs,
+		MessageInfos:      file_My_Service_proto_msgTypes,
 	}.Build()
-	File_Proto_My_Service_proto = out.File
-	file_Proto_My_Service_proto_goTypes = nil
-	file_Proto_My_Service_proto_depIdxs = nil
+	File_My_Service_proto = out.File
+	file_My_Service_proto_goTypes = nil
+	file_My_Service_proto_depIdxs = nil
 }

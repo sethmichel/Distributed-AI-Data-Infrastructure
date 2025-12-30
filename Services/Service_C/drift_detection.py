@@ -7,6 +7,13 @@ import numpy as np
 from scipy.stats import ks_2samp, entropy
 import pandas as pd
 import redis
+import grpc
+from concurrent import futures
+
+# Add Proto directory to path so we can import generated code
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../Proto')))
+import My_Service_pb2      # if there are import errors for protobuf it might be the ide. try restarting 
+import My_Service_pb2_grpc 
 
 # Redis config
 REDIS_HOST = 'localhost'
@@ -17,8 +24,8 @@ WRITE_QUEUE = 'duckdb_write_queue'
 MAX_SAMPLE_SIZE = 20000  # Cap on how much data to pull per slice to avoid ram issues
 
 class DBJobQueueClient:
-    def __init__(self, host=REDIS_HOST, port=REDIS_PORT):
-        self.redis = redis.Redis(host=host, port=port, decode_responses=True)
+    def __init__(self, redis_client):
+        self.redis = redis_client
 
     def query(self, sql_query):
         """
@@ -58,101 +65,6 @@ class DBJobQueueClient:
         finally:
             # Cleanup key just in case
             self.redis.delete(response_key)
-
-def start_service_c():
-    """
-    Entry point for Service C drift detection logic.
-    Follows steps:
-    1. Get production models from model_metadata.
-    2. Get expected features for those models.
-    3. Slice feature data (Current 5% vs Historical 50-70%).
-    """
-    print("Starting Service C Drift Detection...")
-    
-    db_client = DBJobQueueClient()
-
-    try:
-        # Step 1: Get production models and their metadata
-        print("Fetching production models from model_metadata...")
-        
-        query = """
-            SELECT model_id, expected_features 
-            FROM model_metadata 
-            WHERE status = 'production'
-        """
-        models_data = db_client.query(query)
-        
-        if not models_data:
-            print("No production models found or error fetching data.")
-            return
-
-        # Convert to DataFrame for easier handling
-        models_df = pd.DataFrame(models_data)
-
-        for _, row in models_df.iterrows():
-            model_id = row['model_id']
-            expected_features = row['expected_features']
-            
-            print(f"\nProcessing Model: {model_id}")
-            
-            if not expected_features: 
-                print(f"  No expected features defined for {model_id}. Skipping.")
-                continue
-            
-            # Handle string (JSON) representation if DuckDB returns it as such
-            if isinstance(expected_features, str):
-                try:
-                    expected_features = json.loads(expected_features)
-                except json.JSONDecodeError:
-                    print(f"  Error parsing expected_features JSON for {model_id}")
-                    continue
-            
-            # Check if it's a list (expected)
-            if isinstance(expected_features, list):
-                # Extract unique feature names
-                feature_names = []
-                for feat in expected_features:
-                    if isinstance(feat, dict) and 'name' in feat:
-                        feature_names.append(feat['name'])
-                
-                print(f"  Features to check: {feature_names}")
-                
-                # Step 2 & 3: Process each feature
-                for feature_name in feature_names:
-                    hist_df, curr_df = collect_feature_data(db_client, feature_name)
-                    
-                    if hist_df is None or curr_df is None or hist_df.empty or curr_df.empty:
-                        print(f"    Skipping drift calculation for {feature_name} due to insufficient data.")
-                        continue
-
-                    # Step 4: Calculate Stats
-                    print(f"    Calculating statistics for {feature_name}...")
-                    hist_stats = calculate_basic_statistics(hist_df)
-                    curr_stats = calculate_basic_statistics(curr_df)
-                    
-                    print(f"      Hist Mean: {hist_stats['mean']:.4f}, Var: {hist_stats['variance']:.4f}")
-                    print(f"      Curr Mean: {curr_stats['mean']:.4f}, Var: {curr_stats['variance']:.4f}")
-                    
-                    # Step 5: Calculate Drift
-                    print(f"    Calculating drift metrics for {feature_name}...")
-                    drift_metrics = calculate_drift_metrics(hist_df, curr_df)
-                    
-                    if drift_metrics:
-                        print(f"      KS Stat: {drift_metrics['ks_stat']:.4f} (p={drift_metrics['ks_p_value']:.4f})")
-                        print(f"      PSI: {drift_metrics['psi']:.4f}")
-                        print(f"      KL Divergence: {drift_metrics['kl_divergence']:.4f}")
-                    else:
-                        print("      Could not calculate drift metrics.")
-                    
-                    result = sound_the_alarms(drift_metrics) # this probably needs to be sent to service d. it'll decide if we need to retrain models
-
-            else:
-                print(f"  Unexpected format for expected_features: {type(expected_features)}")
-                
-    except Exception as e:
-        print(f"An error occurred during execution: {e}")
-    finally:
-        print("\nService C run complete.")
 
 def collect_feature_data(db_client, feature_name):
     """
@@ -336,3 +248,196 @@ def sound_the_alarms(drift_metrics):
          return "WARNING"
 
     return "PASS"
+
+# we can get prod model names from redis, then use those to get prod model metadata from redis
+def GetModelMetaData(redis_client):
+    all_model_ids = redis_client.smembers('prod_models')
+    all_models_metadata = []
+    
+    for model_id in all_model_ids:
+        # key is model_metadata:<model_id>
+        meta_key = f"model_metadata:{model_id}"
+        meta_json = redis_client.get(meta_key)
+        
+        if meta_json:
+            try:
+                meta = json.loads(meta_json)
+                all_models_metadata.append(meta)
+            except json.JSONDecodeError:
+                print(f"  Error parsing metadata JSON for {model_id}")
+        else:
+            print(f"  Warning: No metadata found for model {model_id}")
+
+    if not all_models_metadata:
+        print("No production models found in Redis.")
+        return [], []
+    
+    return list(all_model_ids), all_models_metadata
+
+
+# analyze 1 feature of 1 model
+# we compare historical data to current data and look for strong differences
+def AnalyzeFeature(db_client, feature_name):
+    hist_df, curr_df = collect_feature_data(db_client, feature_name)
+    
+    if hist_df is None or curr_df is None or hist_df.empty or curr_df.empty:
+        print(f"    Skipping drift calculation for {feature_name} due to insufficient data.")
+        return None
+
+    # 1. Calculate Stats
+    print(f"    Calculating statistics for {feature_name}...")
+    hist_stats = calculate_basic_statistics(hist_df)
+    curr_stats = calculate_basic_statistics(curr_df)
+    
+    print(f"      Hist Mean: {hist_stats['mean']:.4f}, Var: {hist_stats['variance']:.4f}")
+    print(f"      Curr Mean: {curr_stats['mean']:.4f}, Var: {curr_stats['variance']:.4f}")
+    
+    # 2: Calculate Drift
+    print(f"    Calculating drift metrics for {feature_name}...")
+    drift_metrics = calculate_drift_metrics(hist_df, curr_df)
+    
+    if drift_metrics:
+        print(f"      KS Stat: {drift_metrics['ks_stat']:.4f} (p={drift_metrics['ks_p_value']:.4f})")
+        print(f"      PSI: {drift_metrics['psi']:.4f}")
+        print(f"      KL Divergence: {drift_metrics['kl_divergence']:.4f}")
+        
+        status = sound_the_alarms(drift_metrics)
+        
+        # Create proto object
+        metric_proto = My_Service_pb2.FeatureDriftMetric(
+            feature_name=feature_name,
+            ks_stat=drift_metrics['ks_stat'],
+            ks_p_value=drift_metrics['ks_p_value'],
+            psi=drift_metrics['psi'],
+            kl_divergence=drift_metrics['kl_divergence'],
+            status=status
+        )
+        return metric_proto
+
+    else:
+        print("      Could not calculate drift metrics.")
+        return None
+
+
+# Analyze features per model
+# model_metadata is for 1 model
+def AnalyzeModel(model_metadata, db_client):
+    model_id = model_metadata.get('model_id')
+    print(f"\nProcessing Model: {model_id}")
+    
+    expected_features = model_metadata.get('expected_features')
+    if not expected_features: 
+        print(f"  No expected features defined for {model_id}. Skipping.")
+        return None
+    
+    # Handle string (JSON) representation if it's in that format
+    if isinstance(expected_features, str):
+        try:
+            expected_features = json.loads(expected_features)
+        except json.JSONDecodeError:
+            print(f"  Error parsing expected_features JSON for {model_id}")
+            return None
+    
+    feature_metrics_list = []
+    
+    # Check if it's a list (expected)
+    if isinstance(expected_features, list):
+        # Extract unique feature names
+        feature_names = []
+
+        for feature in expected_features:
+            if isinstance(feature, dict) and 'name' in feature:
+                feature_names.append(feature['name'])
+        
+        print(f"  Features to check: {feature_names}")
+        
+        # Process each feature
+        for feature_name in feature_names:
+            metric = AnalyzeFeature(db_client, feature_name)
+            if metric:
+                feature_metrics_list.append(metric)
+
+    else:
+        print(f"  Unexpected format for expected_features: {type(expected_features)}")
+        return None
+
+    # Determine if any feature caused drift
+    drift_detected = any(m.status in ["WARNING", "CRITICAL"] for m in feature_metrics_list)
+    
+    return My_Service_pb2.ModelDriftResult(
+        model_id=model_id,
+        drift_detected=drift_detected,
+        feature_metrics=feature_metrics_list
+    )
+
+
+def EstablishDBConnections():
+    redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    db_client = DBJobQueueClient(redis_client)
+
+    return redis_client, db_client
+
+def run_drift_analysis():
+    """
+    Main logic for Service C drift detection. Returns list of ModelDriftResult.
+    """
+    print("Starting Drift Analysis...")
+    model_results = []
+
+    try:
+        # 1. get db connections
+        print("Establishing db connections...")
+        redis_client, db_client = EstablishDBConnections()
+
+        # 2. Get prod model names and their metadata
+        print("Fetching production models from Redis...")
+        all_model_ids, all_models_metadata = GetModelMetaData(redis_client)
+        
+        if not all_model_ids:
+            return []
+        
+        # 3. analyze model features
+        print("Starting feature drift analysis...")
+        for model_metadata in all_models_metadata:
+             result = AnalyzeModel(model_metadata, db_client)
+             if result:
+                 model_results.append(result)
+            
+    except Exception as e:
+        print(f"An error occurred during execution: {e}")
+    
+    return model_results
+
+# gRPC Service Implementation
+class DriftWorker(My_Service_pb2_grpc.PythonWorkerServicer):
+    def CalculateDrift(self, request, context):
+        print(f"Received CalculateDrift request. Model ID filter: {request.model_id if request.model_id else 'None (All)'}")
+        
+        # Note: We are currently ignoring request.model_id and analyzing all models
+        # because the logic iterates through all prod models. 
+        # In a real scenario, we could filter all_models_metadata by request.model_id.
+        
+        results = run_drift_analysis()
+        
+        response = My_Service_pb2.DriftResponse(
+            model_results=results
+        )
+        return response
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    My_Service_pb2_grpc.add_PythonWorkerServicer_to_server(DriftWorker(), server)
+    
+    # Listen on port 50053 (Service C)
+    port = '50053'
+    server.add_insecure_port(f'[::]:{port}')
+    print(f"Service C gRPC Server started on port {port}")
+    server.start()
+    try:
+        while True:
+            time.sleep(86400)
+    except KeyboardInterrupt:
+        server.stop(0)
+
+if __name__ == '__main__':
+    serve()

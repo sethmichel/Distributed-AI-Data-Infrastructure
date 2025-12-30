@@ -1,3 +1,9 @@
+my notes for the service c rework
+- it's only a drift analysis worker for features
+- db stuff, it should get model names and use those are keys to get model metadata
+
+
+
 **Service C - metrics:** This is called on a schedule (done by Service D) to run non-blocking statistical tests. We group data from DuckDB and logs into time period "buckets" and run tests like KS-Test, PSI, and KL Divergence to find drift in the model performance or drift in features compared to current data. This drift basically shows if the model or features are degrading in quality. We push results to Redis, and those results are scanned by Service D, which triggers the necessary reactions. Python workers do the heavy work and expose the results to a /metrics page that Prometheus scrapes. Then, Grafana queries Prometheus to update the Grafana dashboard to show metrics. We now have a UI that shows all metrics for all models.
 
 we can't block other services, this is a heavy task

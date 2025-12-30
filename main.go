@@ -12,6 +12,7 @@ import (
 
 	service_a "ai_infra_project/Services/Service_A"
 	service_b "ai_infra_project/Services/Service_B"
+	service_c "ai_infra_project/Services/Service_C"
 	service_d "ai_infra_project/Services/Service_D"
 )
 
@@ -71,6 +72,8 @@ func main() {
 	go service_b.Service_B_Start(app_config_struct)
 
 	// 10. START SERVICE C - model metrics
+	log.Println("Starting Service C...")
+	go service_c.StartServiceC()
 
 	log.Println("All system checks completed successfully. System is running. Press CTRL+C to stop.")
 

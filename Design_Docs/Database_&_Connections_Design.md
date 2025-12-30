@@ -120,9 +120,10 @@ key = "model_metadata:" + m.ModelID
 
 service b
 	- accesses this, does not write
-	- key: model:{model_id}:artifact
 service d
 	- only prod models: writes it at startup, and replaces it on retraining models
+	- on drift analysis, we need to update this when a model is done for all its features
+		- we'll use service d so write access remains in 1 location. otherwise it would be in service c
 
 **model artifacts**
 key (go):

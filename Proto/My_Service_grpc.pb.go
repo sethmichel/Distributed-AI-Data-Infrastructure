@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: Proto/My_Service.proto
+// source: My_Service.proto
 
 package myservice
 
@@ -116,7 +116,7 @@ var FeatureStore_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "Proto/My_Service.proto",
+	Metadata: "My_Service.proto",
 }
 
 const (
@@ -224,7 +224,7 @@ var ModelServing_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "Proto/My_Service.proto",
+	Metadata: "My_Service.proto",
 }
 
 const (
@@ -330,7 +330,7 @@ var JobScheduler_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "Proto/My_Service.proto",
+	Metadata: "My_Service.proto",
 }
 
 const (
@@ -560,5 +560,5 @@ var PythonWorker_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "Proto/My_Service.proto",
+	Metadata: "My_Service.proto",
 }

@@ -1,12 +1,18 @@
 # my stuff to ignore
 venv/
+
 Design_Docs/Resume_Entry.md
 Design_Docs/SECRETS.txt
+Design_Docs/Improvements.md
+
 Gobal_Configs/Env/
+
 Data/Offline_Store.duckdb
 Data/Offline_Store.duckdb.wal
+
 ai_infra_project.exe
 
+*.pkl
 *.env
 .env
 *.exe

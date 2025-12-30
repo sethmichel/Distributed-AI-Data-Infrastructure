@@ -60,12 +60,28 @@ message InferenceResponse {
 
 // Python Worker: Drift messages
 message DriftRequest {
-  string dataset_id = 1;
+  // If empty, analyze all production models. 
+  // Can specify specific model_id if needed in future.
+  string model_id = 1; 
+}
+
+message FeatureDriftMetric {
+  string feature_name = 1;
+  double ks_stat = 2;
+  double ks_p_value = 3;
+  double psi = 4;
+  double kl_divergence = 5;
+  string status = 6; // "PASS", "WARNING", "CRITICAL"
+}
+
+message ModelDriftResult {
+  string model_id = 1;
+  bool drift_detected = 2;
+  repeated FeatureDriftMetric feature_metrics = 3;
 }
 
 message DriftResponse {
-  double drift_score = 1;
-  bool drift_detected = 2;
+  repeated ModelDriftResult model_results = 1;
 }
 
 // Python Worker: Training messages
