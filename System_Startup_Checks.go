@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -11,10 +10,8 @@ import (
 	"time"
 
 	config "ai_infra_project/Global_Configs"
-	service_b "ai_infra_project/Services/Service_B"
 
 	_ "github.com/marcboeker/go-duckdb"
-	"github.com/redis/go-redis/v9"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -25,28 +22,15 @@ import (
 4. check/start kafka server is running
 5. start docker services (redis, promethius, granfana)
 6. load prod status models into redis on startup
+
+Service d loads the model artifacts and other info into redis which service b uses
+	- block service b until service d is done starting up
+
 */
 
-func CheckDuckDB(app_config_struct *config.App_Config) error {
-	path := app_config_struct.Connections.DuckDBPath
-
-	// check directory exists
-	if dir := filepath.Dir(path); dir != "" {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("failed to create directory for duckdb: %w", err)
-		}
-	}
-
-	// connect to ensure tables exists
-	db, err := sql.Open("duckdb", path)
-	if err != nil {
-		return fmt.Errorf("failed to open duckdb: %w", err)
-	}
-	defer db.Close()
-
-	// Create features table if it doesn't exist
+func DuckdbTablesQueries() (string, string, string) {
 	featureTableQuery := `
-		CREATE TABLE IF NOT EXISTS features (
+		CREATE TABLE IF NOT EXISTS features_table (
 			entity_id TEXT,
 			feature_name TEXT,
 			value DOUBLE,
@@ -54,6 +38,50 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);`
 
+	metadataTableQuery := `
+	CREATE TABLE IF NOT EXISTS model_metadata (
+		model_id TEXT,
+		artifact_type TEXT,
+		version TEXT,
+		trained_date DATE,
+		model_drift_score DOUBLE,
+		status TEXT,
+		azure_location TEXT,
+		expected_features STRUCT("index" INTEGER, "name" TEXT, "type" TEXT, "drift_score" DOUBLE)[],
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	modelLogsQuery := `
+	CREATE TABLE IF NOT EXISTS model_logs (
+		model_id TEXT,
+		model_version TEXT,
+		model_inputs TEXT,
+		model_result TEXT,
+		model_error TEXT,
+		event_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	return featureTableQuery, metadataTableQuery, modelLogsQuery
+}
+
+func CheckPathsDirs() error {
+	// TODO
+	return nil
+}
+
+// checks directories exist
+func CheckDuckDB(app_config_struct *config.App_Config) error {
+	duckDbPath := app_config_struct.Connections.DuckDBPath
+	featureTableQuery, metadataTableQuery, modelLogsQuery := DuckdbTablesQueries()
+
+	// connect to duckdb to ensure db actually exists
+	db, err := sql.Open("duckdb", duckDbPath)
+	if err != nil {
+		return fmt.Errorf("failed to open duckdb: %w", err)
+	}
+	defer db.Close()
+
+	// Create features table if it doesn't exist
 	if _, err := db.Exec(featureTableQuery); err != nil {
 		return fmt.Errorf("failed to create features table: %w", err)
 	}
@@ -61,19 +89,6 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 
 	// create model metadata table if it doesn't exist
 	// expected_features STRUCT is a list, so I can add 1 for each feature
-	metadataTableQuery := `
-		CREATE TABLE IF NOT EXISTS model_metadata (
-			model_id TEXT,
-			artifact_type TEXT,
-			version TEXT,
-			trained_date DATE,
-			model_drift_score DOUBLE,
-			status TEXT,
-			azure_location TEXT,
-			expected_features STRUCT("index" INTEGER, "name" TEXT, "type" TEXT, "drift_score" DOUBLE)[],
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		);`
-
 	if _, err := db.Exec(metadataTableQuery); err != nil {
 		return fmt.Errorf("failed to create model_metadata table: %w", err)
 	}
@@ -100,80 +115,12 @@ func CheckDuckDB(app_config_struct *config.App_Config) error {
 		log.Printf("Validated model metadata for: %s", model)
 	}
 
-	// now add those model names to redis
-	AddModelNamesRedis(requiredModels, app_config_struct)
-
 	// check/create model logs table
-	modelLogsQuery := `
-		CREATE TABLE IF NOT EXISTS model_logs (
-			model_id TEXT,
-			model_version TEXT,
-			model_inputs TEXT,
-			model_result TEXT,
-			model_error TEXT,
-			event_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		);`
 	if _, err := db.Exec(modelLogsQuery); err != nil {
 		return fmt.Errorf("failed to create model logs table in duckdb: %w", err)
 	}
 	log.Printf("model logs table is present in duckdb")
 
-	return nil
-}
-
-// Write required models to Redis
-// we're using a redis set (sadd) for efficient lookups (o1)
-// we can check for a model with: SISMEMBER prod_models "Loan_Approve"
-func AddModelNamesRedis(requiredModels []string, app_config_struct *config.App_Config) error {
-	redisAddr := app_config_struct.Connections.RedisAddr
-	rdb := redis.NewClient(&redis.Options{
-		Addr: redisAddr,
-	})
-	defer rdb.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // prevent hanging
-	defer cancel()
-
-	// Clear existing key to ensure we don't have stale models
-	if err := rdb.Del(ctx, "prod_models").Err(); err != nil {
-		log.Printf(`Warning: failed to clear prod_models from redis. this was either an error and there were no models to clear.
-		            this is refering to just the names of our downloaded models for other services to reference: %v`, err)
-	}
-
-	// Use SADD to add all models as a set (a O1 redis thing)
-	// We need to convert []string to []interface{} for SAdd
-	if len(requiredModels) > 0 {
-		args := make([]interface{}, len(requiredModels))
-		for i, v := range requiredModels {
-			args[i] = v
-		}
-		if err := rdb.SAdd(ctx, "prod_models", args...).Err(); err != nil {
-			return fmt.Errorf("failed to write required models to redis: %w", err)
-		}
-		log.Printf("Updated 'prod_models' in Redis with %d models.", len(requiredModels))
-	}
-
-	return nil
-}
-
-func LoadModelsOnStartup(app_config_struct *config.App_Config) error {
-	log.Println("Calling service B to Load production models from Azure...")
-	redisAddr := app_config_struct.Connections.RedisAddr
-
-	handler, err := service_b.CreateNewHandler(redisAddr)
-	if err != nil {
-		return fmt.Errorf("failed to create service_b handler: %w", err)
-	}
-	defer handler.CloseRedisClient()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	if err := handler.LoadProductionModels(ctx); err != nil {
-		return fmt.Errorf("failed to load production models: %w", err)
-	}
-
-	log.Println("Successfully loaded production models.")
 	return nil
 }
 

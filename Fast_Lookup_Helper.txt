@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS model_logs (
 );`
 service b writes model event logs here
 
-CREATE TABLE IF NOT EXISTS features (
+CREATE TABLE IF NOT EXISTS features_table (
     entity_id TEXT,
     feature_name TEXT,
     value DOUBLE,

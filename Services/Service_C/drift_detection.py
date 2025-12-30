@@ -158,7 +158,7 @@ def collect_feature_data(db_client, feature_name):
     """
     Fetches and slices data for a specific feature.
     Logic:
-    - Look at total size of features table (for this feature).
+    - Look at total size of features_table table (for this feature).
     - Current Data: Most recent 5%.
     - Historical Data: 50% to 70% slice (sorted by time).
     Returns:
@@ -166,7 +166,7 @@ def collect_feature_data(db_client, feature_name):
     """
     try:
         # Get total count for this feature to calculate percentages
-        count_query = f"SELECT count(*) as count FROM features WHERE feature_name = '{feature_name}'"
+        count_query = f"SELECT count(*) as count FROM features_table WHERE feature_name = '{feature_name}'"
         count_result = db_client.query(count_query)
         
         if not count_result or not count_result[0].get('count'):
@@ -204,7 +204,7 @@ def collect_feature_data(db_client, feature_name):
         # Fetch Historical Data
         hist_query = f"""
             SELECT value, event_timestamp 
-            FROM features 
+            FROM features_table 
             WHERE feature_name = '{feature_name}' 
             ORDER BY event_timestamp ASC 
             LIMIT {hist_count} OFFSET {hist_offset}

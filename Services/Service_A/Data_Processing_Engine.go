@@ -87,7 +87,7 @@ func SendBatch_Duckdb_Queue(batchData []FeatureData, redis_conn *redis.Client, c
 		for _, data := range batchData {
 			// make write request
 			req := Services.WriteRequest{
-				Table: "features",
+				Table: "features_table",
 				Data: map[string]interface{}{
 					"entity_id":       data.EntityID,
 					"feature_name":    data.FeatureName,

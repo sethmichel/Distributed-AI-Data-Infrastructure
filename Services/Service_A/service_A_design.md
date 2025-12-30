@@ -21,7 +21,7 @@ data processing file: kafka writer, grpc server, redis connection
 **schemas**
 duckdb write format
 req := Services.WriteRequest{
-				Table: "features",
+				Table: "features_table",
 				Data: map[string]interface{}{
 					"entity_id":       data.EntityID,
 					"feature_name":    data.FeatureName,

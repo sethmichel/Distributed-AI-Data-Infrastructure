@@ -1,44 +1,7 @@
-### Duckdb
+duckdb
 ISSUE: It can only have 1 writer at a time, and multiple readers present possible file lock issues between themselves and the writer.
 SOLUTION: all services use a database handler service for all read/writes to duckdb. each service sends requests to a job queue in redis that's batched until database service does the jobs
 ISSUE: the write appender api made things too complex, I can barely read it. I should rewrite it to be clearer
-
-service A sends this info to kafka & it reads the files into this format and sends to gRPC
-feature storage schema (use appender api)
-    CREATE TABLE IF NOT EXISTS features (
-        entity_id TEXT,
-        feature_name TEXT,
-        value DOUBLE,
-        event_timestamp TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-model metadata
-metadata is searched for at service b startup (not app startup), service b looks for the metadata of prod models and downloads them from azure into redis
-example:
-	metadata := ModelMetadata{
-		ModelID:       "credit_risk_v1",
-		ArtifactType   "scaler",
-		Version:       "1.0.0",
-		TrainedDate:   "2023-10-25",
-		Status:        "production",
-		AzureLocation: "ai-models",
-		ExpectedFeatures: []ModelFeature{
-			{Index: 0, Name: "debt_to_income_ratio", Type: "float"},
-			{Index: 1, Name: "age_years", Type: "int"},
-		},
-	}
-
-model logs table
-- note that model inputs are text. they can be all different types so we'll need to store it as text
-    CREATE TABLE IF NOT EXISTS model_logs (
-        model_id TEXT,
-        model_version TEXT,
-        model_inputs: TEXT,
-		model_result: TEXT,
-		model_error: TEXT,
-        event_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
 
 # how to read/write to/from duckdb
 since we have to use a database service to get around locking duckdb files
@@ -46,15 +9,87 @@ since we have to use a database service to get around locking duckdb files
 	- this might bottleneck at scale, even for 1000 users. however I might have opimized it enough with spawning so many go routines for different jobs concurrently
 	- relies on duckdb internal mvcc for thread safety rather than manually locking the db
 
-- bug: abstract the read logic into a shared file
+**features table**: all data lives here. id's are entity_id, feature_name, and created_at. this means there's overlapping data points that are only different by created_at
+CREATE TABLE IF NOT EXISTS features_table (
+        entity_id TEXT,
+        feature_name TEXT,
+        value DOUBLE,
+        event_timestamp TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+**how it's used**
+- service A writes all data and files here
 
-**write:**
-- appoximatly this.
-		pipe := redis_conn.Pipeline()
-		for _, data := range batchData {
+---
+
+**model logs**: note that model inputs are text. they can be all different types so we'll need to store it as text
+CREATE TABLE IF NOT EXISTS model_logs (
+	model_id TEXT,
+	model_version TEXT,
+	model_inputs: TEXT,
+	model_result: TEXT,
+	model_error: TEXT,
+	event_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+**how it's used**
+- service b: after we deliver the user the models result, we write the full interaction here as a log
+
+---
+
+**model metadata**: prod metadata ends up in redis after service b startup
+CREATE TABLE IF NOT EXISTS model_metadata (
+	model_id TEXT,
+	artifact_type TEXT,
+	version TEXT,
+	trained_date DATE,
+	model_drift_score DOUBLE,
+	status TEXT,
+	azure_location TEXT,
+	expected_features STRUCT("index" INTEGER, "name" TEXT, "type" TEXT, "drift_score" DOUBLE)[],
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+**how it's used**
+- service b 
+	- get's notified by service d when a new model is ready and gets the new info from redis and pulls the azure artifacts
+	- SO NOTE: PROD METADATA IS IN REDIS
+- service c 
+	- does the drift detection, but it's service D who writes the drift score to it
+- service d 
+ 	- changes status from production to deprecated when a new model is ready
+	- retrains models and then makes NEW entries for the new models
+	- on startup, gets all entries with production status from duckdb into redis
+
+
+# redis
+**features**
+service a
+	- overwrites the latest value for each feature so other services can get it quickly
+		- entity_id: feature_name
+		- value is a json string: {"val": 123.45, "timestamp": "2024-01-01T12:00:00Z"}
+		- read/write examples
+		   // --- WRITE ---
+			key := "user_123:click_count"
+			data := map[string]interface{} {
+				"val":       42.5,
+				"timestamp": time.Now(),
+			}
+			jsonData, _ := json.Marshal(data)
+			err := rdb.Set(ctx, key, jsonData, 0).Err()
+			
+			// --- READ ---
+			val, err := rdb.Get(ctx, key).Result()
+			var result RedisValue
+    		json.Unmarshal([]byte(val), &result)
+
+**duckdb read/write job queue**
+- all services use this to push read/write requests. the result of read requests to sent to the queue also and read by services
+- read/write examples
+		- // WRITE
+		  pipe := redis_conn.Pipeline()
+		  for _, data := range batchData {
 			// make write request
 			req := Services.WriteRequest{
-				Table: "features",
+				Table: "features_table",
 				Data: map[string]interface{}{
 					"entity_id":       data.EntityID,
 					"feature_name":    data.FeatureName,
@@ -63,18 +98,56 @@ since we have to use a database service to get around locking duckdb files
 					"created_at":      data.CreatedAt,
 				},
 			}
-
 			valBytes, err := json.Marshal(req) // serialize into bytes
 			if err != nil {
 				log.Printf("Error marshaling duckdb write request: %v", err)
 				continue
 			}
-
 			pipe.RPush(ctx, Services.RedisWriteQueue, valBytes)
 		}
-- then the db service will see redis got a job pushed to it and on its next scheduled check it'll process it
+			- then the db service will see redis got a job pushed to it and on its next scheduled check it'll process it
 
-**reads**
+		- // READ
+		- see example below (example 1)
+
+**model_id's of production models**
+key: redisConn.SAdd(ctx, "prod_models", args...)
+
+- service d deletes and creates them
+
+**model_metadata**
+key = "model_metadata:" + m.ModelID
+
+service b
+	- accesses this, does not write
+	- key: model:{model_id}:artifact
+service d
+	- only prod models: writes it at startup, and replaces it on retraining models
+
+**model artifacts**
+key (go):
+	cleanExt := strings.TrimPrefix(ext, ".")
+    fmt.Sprintf("model:%s:%s", m.ModelID, cleanExt)
+
+- service d 
+	- creates and deletes them (from redis only)
+- service b
+	- reads them
+
+---
+
+# azure
+
+service d
+	- downloads the prod artifacts
+	- on training a new model
+		- changes existing artifact names to remove the production word
+		- uploads the new prod artifacts and they include the word production in their name
+
+
+
+**Example 1**
+redis job queue read request
 - we have to pause the calling service until we get the duckdb response
 - the database service will write the read result to redis under the same key
 - it will do reads concurrently, up to 50 via go routines for each request
@@ -84,10 +157,7 @@ since we have to use a database service to get around locking duckdb files
 		- services will do something like 
 			var models []ModelMetadata
 			err := DBServiceClient.Query(ctx, "SELECT ...", &models)
-		- and the file will write the results into models
-
-model artifacts
-	- artifacts are saved under the key: model:{model_id}:artifact
+		- and the file will write the results into models 
 
 - approximetly this
 	1. generate a key

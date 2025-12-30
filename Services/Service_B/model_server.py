@@ -5,7 +5,6 @@ import pickle
 import grpc
 import pandas as pd
 from concurrent import futures
-from dotenv import load_dotenv
 
 # Add project root to python path so we can import the generated proto files
 # Current file is in Services/Service_B/, so we need to go up two levels to get to project root
@@ -13,9 +12,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 
 import Proto.My_Service_pb2 as pb2
 import Proto.My_Service_pb2_grpc as pb2_grpc
-
-# Load environment variables
-load_dotenv(os.path.join(os.path.dirname(__file__), '../../Global_Configs/Env/Azure.env'))
 
 # Configuration
 # Default to localhost if not set, but in docker this would be "redis"
@@ -62,18 +58,19 @@ class PythonWorkerService(pb2_grpc.PythonWorkerServicer):
             # Simple conversion: Try to convert numeric strings to floats
             # This is a naive implementation; normally you'd use the model's metadata to strict type
             for k, v_list in input_dict.items():
-                try:
-                    # check if it's an integer or float
-                    val = v_list[0]
-                    if "." in val:
-                         input_dict[k] = [float(val)]
-                    else:
-                         try:
-                             input_dict[k] = [int(val)]
-                         except ValueError:
-                             input_dict[k] = [float(val)]
-                except ValueError:
-                    pass # Keep as string
+                for i, val in enumerate(v_list):
+                    try:
+                        # check if it's an integer or float
+                        if "." in val:
+                             v_list[i] = float(val)
+                        else:
+                             try:
+                                 v_list[i] = int(val)
+                             except ValueError:
+                                 v_list[i] = float(val)
+                    except ValueError:
+                        pass # Keep as string
+                input_dict[k] = v_list
             
             df = pd.DataFrame(input_dict)
 
@@ -104,7 +101,4 @@ def serve():
     print(f"Python Model Server listening on port {GRPC_PORT}...")
     server.start()
     server.wait_for_termination()
-
-if __name__ == '__main__':
-    serve()
 
