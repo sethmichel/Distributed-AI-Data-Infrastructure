@@ -2,6 +2,7 @@ package service_d
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,15 +27,18 @@ import (
 )
 
 type ModelFeature struct {
-	Index int    `json:"index"`
-	Name  string `json:"name"`
-	Type  string `json:"type"`
+	Index      int     `json:"index"`
+	Name       string  `json:"name"`
+	Type       string  `json:"type"`
+	DriftScore float64 `json:"drift_score"`
 }
 
 type ModelMetadata struct {
 	ModelID          string         `json:"model_id"`
+	ArtifactType     string         `json:"artifact_type"`
 	Version          string         `json:"version"`
 	TrainedDate      string         `json:"trained_date"`
+	ModelDriftScore  float64        `json:"model_drift_score"`
 	Status           string         `json:"status"`
 	AzureLocation    string         `json:"azure_location"`
 	ExpectedFeatures []ModelFeature `json:"expected_features"`
@@ -41,12 +46,27 @@ type ModelMetadata struct {
 
 // Internal struct to match the flat structure returned by the DB service (where features is a JSON string)
 type dbModelMetadata struct {
-	ModelID       string `json:"model_id"`
-	Version       string `json:"version"`
-	TrainedDate   string `json:"trained_date"`
-	Status        string `json:"status"`
-	AzureLocation string `json:"azure_location"`
-	FeaturesJSON  string `json:"features_json"`
+	ModelID         string  `json:"model_id"`
+	ArtifactType    string  `json:"artifact_type"`
+	Version         string  `json:"version"`
+	TrainedDate     string  `json:"trained_date"`
+	ModelDriftScore float64 `json:"model_drift_score"`
+	Status          string  `json:"status"`
+	AzureLocation   string  `json:"azure_location"`
+	FeaturesJSON    string  `json:"features_json"`
+}
+
+type ModelOutputInfo struct {
+	Type             string `json:"type"`
+	Description      string `json:"description"`
+	IsClassification bool   `json:"is_classification"`
+	Classes          []int  `json:"classes,omitempty"`
+}
+
+type PythonScriptOutput struct {
+	Artifacts map[string]string          `json:"artifacts"`
+	Features  map[string][]ModelFeature  `json:"features"`
+	Outputs   map[string]ModelOutputInfo `json:"outputs"`
 }
 
 func EstablishDBConnections(app_config *config.App_Config) (*Services.DBJobQueueClient, *redis.Client, *azblob.Client, context.Context, context.CancelFunc, error) {
@@ -80,8 +100,10 @@ func GetProductionModelMetadata(ctx context.Context, dbClient *Services.DBJobQue
 	query := `
 		SELECT 
 			model_id, 
+			artifact_type,
 			version, 
 			CAST(trained_date AS VARCHAR) as trained_date, 
+			model_drift_score,
 			status, 
 			azure_location, 
 			to_json(expected_features) as features_json
@@ -97,11 +119,13 @@ func GetProductionModelMetadata(ctx context.Context, dbClient *Services.DBJobQue
 	var models []ModelMetadata
 	for _, dbM := range dbModels {
 		m := ModelMetadata{
-			ModelID:       dbM.ModelID,
-			Version:       dbM.Version,
-			TrainedDate:   dbM.TrainedDate,
-			Status:        dbM.Status,
-			AzureLocation: dbM.AzureLocation,
+			ModelID:         dbM.ModelID,
+			ArtifactType:    dbM.ArtifactType,
+			Version:         dbM.Version,
+			TrainedDate:     dbM.TrainedDate,
+			ModelDriftScore: dbM.ModelDriftScore,
+			Status:          dbM.Status,
+			AzureLocation:   dbM.AzureLocation,
 		}
 
 		if dbM.FeaturesJSON != "" {
@@ -280,17 +304,134 @@ func TriggerDriftDetection(ctx context.Context, serviceCAddr string) error {
 	return nil
 }
 
-// retrains models, backs up files locally (for debugging), deprecates old azure artifacts, uploads new artifacts to azure
-// the backups are really just debugging. this deletes them and saves the new ones there
-func RetrainAndUploadModels(ctx context.Context, app_config *config.App_Config, azureConn *azblob.Client) error {
-	// 1. Run the Python retraining script
-	if err := RunRetrainingScript(); err != nil {
-		return err
+// for model metadata
+func incrementVersion(version string) (string, error) {
+	parts := strings.Split(version, ".")
+	if len(parts) != 3 {
+		return "", fmt.Errorf("failed to update model version. version is the wrong format: %v", version)
 	}
 
-	// 2. Handle Local Backups
-	modelData, err := HandleLocalBackups()
+	major, _ := strconv.Atoi(parts[0])
+	minor, _ := strconv.Atoi(parts[1])
+	patch, _ := strconv.Atoi(parts[2])
+
+	// "iterate the version up by 0.0.1"
+	patch++
+
+	return fmt.Sprintf("%d.%d.%d", major, minor, patch), nil
+}
+
+// creates metadata for newly trained models.
+// It checks against oldModels to decide if it's a retrain (increment version) or a new model (v0.1.0).
+func PrepareNewModelMetadata(oldModels []ModelMetadata, newModelFeatures map[string][]ModelFeature) ([]ModelMetadata, error) {
+	// Create a map for quick lookup of old models
+	oldModelMap := make(map[string]ModelMetadata)
+	for _, m := range oldModels {
+		oldModelMap[m.ModelID] = m
+	}
+
+	var newMetadataList []ModelMetadata
+	currentDate := time.Now().Format("2006-01-02") // format: yyyy-mm-dd
+
+	for modelID, features := range newModelFeatures {
+		if oldMetadata, exists := oldModelMap[modelID]; exists {
+			// RETRAIN situation
+			// "copy that data... iterate the version up by 0.0.1"
+			newMeta := oldMetadata
+			var err error
+			newMeta.Version, err = incrementVersion(oldMetadata.Version)
+			if err != nil {
+				return nil, fmt.Errorf("failed to increment version for model %s: %w", modelID, err)
+			}
+			newMeta.TrainedDate = currentDate
+			newMeta.ModelDriftScore = 0 // Reset drift score
+			newMeta.Status = "production"
+
+			// Reset drift score for features
+			// We use the NEW features from the training script just in case they changed,
+			// but usually for a retrain they should be the same structure.
+			// The script output features have drift_score=0 by default (float zero value).
+			newMeta.ExpectedFeatures = features
+			for i := range newMeta.ExpectedFeatures {
+				newMeta.ExpectedFeatures[i].DriftScore = 0
+			}
+
+			newMetadataList = append(newMetadataList, newMeta)
+			log.Printf("Service D: Prepared metadata for RETRAINED model %s (v%s)", modelID, newMeta.Version)
+
+		} else {
+			// NEW MODEL situation
+			// "create the metadata ourself... version is 0.1.0"
+			newMeta := ModelMetadata{
+				ModelID:          modelID,
+				ArtifactType:     "pkl",
+				Version:          "0.1.0",
+				TrainedDate:      currentDate,
+				ModelDriftScore:  0,
+				Status:           "production",
+				AzureLocation:    fmt.Sprintf("Model_%s/", modelID),
+				ExpectedFeatures: features,
+			}
+			// Ensure features drift score is 0
+			for i := range newMeta.ExpectedFeatures {
+				newMeta.ExpectedFeatures[i].DriftScore = 0
+			}
+
+			newMetadataList = append(newMetadataList, newMeta)
+			log.Printf("Service D: Prepared metadata for NEW model %s (v%s)", modelID, newMeta.Version)
+		}
+	}
+
+	return newMetadataList, nil
+}
+
+// retrains models, backs up files locally (for debugging), deprecates old azure artifacts, uploads new artifacts to azure
+// the backups are really just debugging. this deletes them and saves the new ones there
+func RetrainAndUploadModels(ctx context.Context, app_config *config.App_Config, azureConn *azblob.Client, modelsMetadata []ModelMetadata) error {
+	// 1. Run the Python retraining script
+	log.Println("Service D: Starting model retraining task...")
+
+	cmd := exec.Command("python", "Services/Service_D/Random_Generated_Models.py")
+	output, err := cmd.Output()
 	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("failed to run python script: %v, stderr: %s", err, string(exitErr.Stderr))
+		}
+		return fmt.Errorf("failed to run python script: %w", err)
+	}
+
+	var scriptOutput PythonScriptOutput
+	if err := json.Unmarshal(output, &scriptOutput); err != nil {
+		return fmt.Errorf("failed to parse python script output: %w", err)
+	}
+
+	// Log that we received features and outputs
+	log.Printf("Service D: Received artifacts for %d models.", len(scriptOutput.Artifacts))
+	for modelID, features := range scriptOutput.Features {
+		log.Printf("  Model %s has %d features defined.", modelID, len(features))
+	}
+	for modelID, outputInfo := range scriptOutput.Outputs {
+		log.Printf("  Model %s output info: Type=%s, IsClass=%v", modelID, outputInfo.Type, outputInfo.IsClassification)
+	}
+
+	modelData := make(map[string][]byte)
+	for k, v := range scriptOutput.Artifacts {
+		decoded, err := base64.StdEncoding.DecodeString(v)
+		if err != nil {
+			return fmt.Errorf("failed to decode base64 for model %s: %w", k, err)
+		}
+		modelData[k] = decoded
+	}
+
+	// these are already in useable format
+	modelFeatures := scriptOutput.Features
+	modelOutputs := scriptOutput.Outputs
+
+	log.Printf("Service D: Extracted %d feature sets and %d output definitions.", len(modelFeatures), len(modelOutputs))
+	log.Println("Service D: Python script executed successfully and returned artifacts.")
+
+	// 2. Handle Local Backups
+	if err := HandleLocalBackups(modelData); err != nil {
 		return err
 	}
 
@@ -299,77 +440,76 @@ func RetrainAndUploadModels(ctx context.Context, app_config *config.App_Config, 
 		return err
 	}
 
-	return nil
-}
-
-func RunRetrainingScript() error {
-	log.Println("Service D: Starting model retraining task...")
-	// Run the Python retraining script
-	cmd := exec.Command("python", "Services/Service_D/Random_Generated_Models.py")
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to run python script: %w, output: %s", err, string(output))
+	// 4. Extract and Prepare Metadata for DuckDB
+	log.Println("Service D: Step 4 - Preparing new model metadata...")
+	newModelsMetadata, err := PrepareNewModelMetadata(modelsMetadata, modelFeatures)
+	if err != nil {
+		return fmt.Errorf("failed to prepare new model metadata: %w", err)
 	}
-	log.Println("Service D: Python script executed successfully.")
+	log.Printf("Service D: Prepared metadata for %d models. Ready for DB save (next step).", len(newModelsMetadata))
+
 	return nil
 }
 
-func HandleLocalBackups() (map[string][]byte, error) {
+func HandleLocalBackups(modelData map[string][]byte) error {
 	backupDir := "Services/Service_D/Ml_Models_Backup"
 
-	// Define output name mappings (Output File -> Model Name)
-	// The target file name is Model_{ModelName}.pkl
-	fileMappings := map[string]string{
-		"model_house_price.pkl":  "House_Price",
-		"model_loan_approve.pkl": "Loan_Approve",
-		"model_coffee_pref.pkl":  "Coffee_Pref",
+	// 1. Clear existing backups
+	files, err := os.ReadDir(backupDir)
+	if err != nil {
+		return fmt.Errorf("failed to read backup directory %s: %w", backupDir, err)
 	}
 
-	modelData := make(map[string][]byte)
-
-	for generatedFile, modelName := range fileMappings {
-		// check file exists
-		data, err := os.ReadFile(generatedFile)
-		if err != nil {
-			log.Printf("Service D: Warning - could not read generated file %s: %v", generatedFile, err)
-			continue
+	for _, f := range files {
+		// Skip directories or strict file matching if desired, but "delete all files" was requested
+		if !f.IsDir() {
+			path := filepath.Join(backupDir, f.Name())
+			if err := os.Remove(path); err != nil {
+				log.Printf("Service D: Warning - failed to delete old backup %s: %v", path, err)
+			}
 		}
+	}
 
-		os.Remove(generatedFile) // delete the temp file
-
+	// 2. Save new files
+	for modelName, data := range modelData {
 		// create paths
 		modelBaseName := fmt.Sprintf("Model_%s", modelName)
 		newLocalBackupFileName := fmt.Sprintf("%s.pkl", modelBaseName)
 		newLocalBackupPath := filepath.Join(backupDir, newLocalBackupFileName)
 
-		// Save to Backup Directory (replace existing)
+		// Save to Backup Directory
 		if err := os.WriteFile(newLocalBackupPath, data, 0644); err != nil {
 			log.Printf("Service D: Warning - could not save to backup %s: %v", newLocalBackupPath, err)
 		} else {
 			log.Printf("Service D: Saved backup to %s", newLocalBackupPath)
 		}
-
-		modelData[modelName] = data
 	}
 
-	return modelData, nil
+	return nil
 }
 
+/*
+This is like this because of how bad I designed the azure system. That was early on and it's on my list of changes to do
+- The function lists all blobs within the Model_{modelName}/ directory prefix
+- It iterates through these blobs and identifies any that contain _Production in their name.
+- For each found "Production" file, it downloads the content.
+- Generates a new archive name by replacing _Production with _{RandomNumber} (marks it as depreceated as far as this program is concerned)
+- Uploads the content to the new archive name.
+- Deletes the old "Production" blob.
+- Finally, it uploads the new model artifact with the standard Model_{modelName}_Production.pkl name.
+*/
 func ManageAzureArtifacts(ctx context.Context, app_config *config.App_Config, azureConn *azblob.Client, modelData map[string][]byte) error {
 	azureContainerName := app_config.Connections.AzureContainerName
 
 	for modelName, data := range modelData {
 		modelBaseName := fmt.Sprintf("Model_%s", modelName)
 		azureFolder := modelBaseName // ex) Model_House_Price
-		prodFileName := fmt.Sprintf("%s_Production.pkl", modelBaseName)
-		prodBlobPath := fmt.Sprintf("%s/%s", azureFolder, prodFileName)
 
-		// Archive strategy: "Rename" existing file manually (Download -> Upload to new name -> Delete old)
-		// We do this to avoid using Redis or complex SDK copy methods if unavailable.
+		// The requirement is to rename ANY file ending in "Production.pkl" (or similar) to have a random number instead.
+		// Then upload the new one as the definitive "Production".
 
-		// 1. Check if production blob exists
-		exists := false
-		// We use ListBlobs to check existence and avoid 404 errors on Download
-		prefix := azureFolder
+		// 1. Scan for existing Production files
+		prefix := azureFolder + "/"
 		pager := azureConn.NewListBlobsFlatPager(azureContainerName, &azblob.ListBlobsFlatOptions{
 			Prefix: &prefix,
 		})
@@ -380,45 +520,43 @@ func ManageAzureArtifacts(ctx context.Context, app_config *config.App_Config, az
 				log.Printf("Service D: Warning - Error listing blobs to check for existing production model: %v", err)
 				break
 			}
+
 			for _, blob := range resp.Segment.BlobItems {
-				if *blob.Name == prodBlobPath {
-					exists = true
-					break
-				}
-			}
-			if exists {
-				break
-			}
-		}
+				blobName := *blob.Name
 
-		if exists {
-			log.Printf("Service D: Found existing production model %s. Archiving...", prodBlobPath)
+				// Check if this file is a "Production" file
+				// We look for "_Production" in the name.
+				if strings.Contains(blobName, "_Production") {
+					log.Printf("Service D: Found existing production model %s. Archiving...", blobName)
 
-			// Download old data
-			getResp, err := azureConn.DownloadStream(ctx, azureContainerName, prodBlobPath, nil)
-			if err != nil {
-				log.Printf("Service D: Warning - Failed to download old production model for archiving: %v", err)
-			} else {
-				oldData, err := io.ReadAll(getResp.Body)
-				getResp.Body.Close()
+					// Download old data
+					getResp, err := azureConn.DownloadStream(ctx, azureContainerName, blobName, nil)
+					if err != nil {
+						log.Printf("Service D: Warning - Failed to download old production model for archiving: %v", err)
+						continue
+					}
 
-				if err != nil {
-					log.Printf("Service D: Warning - Failed to read old production model body: %v", err)
-				} else {
-					// Create Archive Name
-					randNum := rand.Intn(100000)
-					archiveFileName := fmt.Sprintf("%s_%d.pkl", modelBaseName, randNum)
-					archiveBlobPath := fmt.Sprintf("%s/%s", azureFolder, archiveFileName)
+					oldData, err := io.ReadAll(getResp.Body)
+					getResp.Body.Close()
 
-					log.Printf("Service D: Archiving to %s", archiveBlobPath)
+					if err != nil {
+						log.Printf("Service D: Warning - Failed to read old production model body: %v", err)
+						continue
+					}
+
+					// Create Archive Name: Replace "_Production" with "_{RandomNumber}"
+					randNum := rand.Intn(1000000)
+					archiveBlobName := strings.Replace(blobName, "_Production", fmt.Sprintf("_%d", randNum), 1)
+
+					log.Printf("Service D: Archiving to %s", archiveBlobName)
 
 					// Upload to Archive
-					_, err = azureConn.UploadBuffer(ctx, azureContainerName, archiveBlobPath, oldData, nil)
+					_, err = azureConn.UploadBuffer(ctx, azureContainerName, archiveBlobName, oldData, nil)
 					if err != nil {
 						log.Printf("Service D: Warning - Failed to upload archive blob: %v", err)
 					} else {
 						// Delete old production blob
-						_, err = azureConn.DeleteBlob(ctx, azureContainerName, prodBlobPath, nil)
+						_, err = azureConn.DeleteBlob(ctx, azureContainerName, blobName, nil)
 						if err != nil {
 							log.Printf("Service D: Warning - Failed to delete old production blob after archiving: %v", err)
 						} else {
@@ -427,11 +565,12 @@ func ManageAzureArtifacts(ctx context.Context, app_config *config.App_Config, az
 					}
 				}
 			}
-		} else {
-			log.Printf("Service D: No existing production model found at %s. Skipping archive.", prodBlobPath)
 		}
 
-		// Upload NEW model as Production
+		// 2. Upload NEW model as Production
+		prodFileName := fmt.Sprintf("%s_Production.pkl", modelBaseName)
+		prodBlobPath := fmt.Sprintf("%s/%s", azureFolder, prodFileName)
+
 		log.Printf("Service D: Uploading new production model to %s", prodBlobPath)
 		_, err := azureConn.UploadBuffer(ctx, azureContainerName, prodBlobPath, data, nil)
 		if err != nil {
@@ -445,7 +584,7 @@ func ManageAzureArtifacts(ctx context.Context, app_config *config.App_Config, az
 }
 
 // StartScheduler initializes and runs background scheduled tasks
-func StartScheduler(app_config *config.App_Config, azureConn *azblob.Client) {
+func StartScheduler(app_config *config.App_Config, azureConn *azblob.Client, models []ModelMetadata) {
 	go func() {
 		// Task 1: Drift Detection (e.g., every 1 hour)
 		featureDriftTicker := time.NewTicker(1 * time.Hour)
@@ -480,7 +619,7 @@ func StartScheduler(app_config *config.App_Config, azureConn *azblob.Client) {
 			case <-modelRetrainTicker.C:
 				log.Println("Service D: Scheduler triggering task 2 (Model Retraining)...")
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-				if err := RetrainAndUploadModels(ctx, app_config, azureConn); err != nil {
+				if err := RetrainAndUploadModels(ctx, app_config, azureConn, models); err != nil {
 					log.Printf("Service D: Error during model retraining task: %v", err)
 				}
 				cancel()
@@ -531,7 +670,7 @@ func Service_D_Start(app_config *config.App_Config) error {
 	}
 
 	// 4. Start the scheduler for background tasks
-	StartScheduler(app_config, azureConn)
+	StartScheduler(app_config, azureConn, models)
 
 	return nil
 }

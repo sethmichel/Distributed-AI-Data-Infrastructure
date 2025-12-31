@@ -38,13 +38,13 @@ CREATE TABLE IF NOT EXISTS model_logs (
 
 **model metadata**: prod metadata ends up in redis after service b startup
 CREATE TABLE IF NOT EXISTS model_metadata (
-	model_id TEXT,
-	artifact_type TEXT,
-	version TEXT,
-	trained_date DATE,
+	model_id TEXT,        # ex: House_Price
+	artifact_type TEXT,   # ex: pkl
+	version TEXT,         # ex: 1.0.0
+	trained_date DATE,    # ex: mm-dd-yyyy
 	model_drift_score DOUBLE,
-	status TEXT,
-	azure_location TEXT,
+	status TEXT,          # either "production" or "deprecated"
+	azure_location TEXT,  # this will be "Model_{model_id}/"
 	expected_features STRUCT("index" INTEGER, "name" TEXT, "type" TEXT, "drift_score" DOUBLE)[],
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
