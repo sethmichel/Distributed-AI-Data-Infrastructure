@@ -150,6 +150,10 @@ func CheckKafka(app_config_struct *config.App_Config) error {
 	// this tries to avoid a windows problems where localhost gets resolved to ipv6 x, but kafka is listening to ipv4 y
 	conn, err := dialer.Dial("tcp4", brokerAddress)
 	if err != nil {
+		if os.Getenv("RUN_IN_K3S") == "true" {
+			return fmt.Errorf("failed to connect to Kafka at %s: %w (K3s mode - not attempting to start local server)", brokerAddress, err)
+		}
+
 		log.Printf("Failed to connect to Kafka at %s (IPv4): %v. Attempting to start it...", brokerAddress, err)
 
 		kafkaDir := app_config_struct.Paths.KafkaInstallDir
@@ -196,43 +200,6 @@ func CheckKafka(app_config_struct *config.App_Config) error {
 
 	log.Printf("Kafka is running. Found %d partitions across all topics.", len(partitions))
 
-	return nil
-}
-
-// Check/start Docker containers for Prometheus, Grafana, Redis
-// telling docker to start over and over while it's already up doesn't do anything bad
-func StartDockerServices() error {
-	cmd := exec.Command("docker", "compose", "-f", "Global_Configs/Docker_Compose.yml", "up", "-d")
-
-	log.Println("Starting Docker services (Redis, Prometheus, Grafana)...")
-
-	// use these variable if I want debug output in my terminal
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to start docker services: %w", err)
-	}
-
-	log.Println("Docker services started successfully.")
-	return nil
-}
-
-// Stop Docker containers for Prometheus, Grafana, Redis
-func StopDockerServices() error {
-	log.Println("Stopping Docker services...")
-
-	cmd := exec.Command("docker", "compose", "-f", "Global_Configs/Docker_Compose.yml", "down")
-
-	// Inherit stdout/stderr for visibility
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to stop docker services: %w", err)
-	}
-
-	log.Println("Docker services stopped successfully.")
 	return nil
 }
 

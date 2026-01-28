@@ -1,0 +1,11 @@
+# Docker Image Names Registry
+# This file tracks the image names used in the Kubernetes manifests.
+
+# Main Application Image (Contains Service A, B, C, D, and DB Handler)
+# Built from: ./Dockerfile
+App_Image: ghcr.io/sethmichel/ai-infra-app:latest
+
+# Infrastructure Images (Standard Library)
+Redis_Image: redis:7-alpine
+Prometheus_Image: prom/prometheus:latest
+Grafana_Image: grafana/grafana:latest

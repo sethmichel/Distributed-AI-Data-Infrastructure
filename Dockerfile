@@ -21,7 +21,7 @@ RUN pip3 install -r Requirements.txt --break-system-packages
 COPY . .
 
 # Build the Go binary
-RUN go build -o ai-infra-app Main.go
+RUN go build -o ai-infra-app .
 
 # Expose ports (gRPC, Metrics, etc)
 EXPOSE 8080 50052

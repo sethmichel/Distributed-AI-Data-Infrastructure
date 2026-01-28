@@ -16,7 +16,7 @@ drift:
 
 connections:
   duckdb_path: "./Data/Offline_Store.duckdb"
-  redis_addr: "localhost:6379"
+  redis_addr: "redis:6379"
   azure_conn: "UseDevelopmentStorage=true"
   kafka_addr: "127.0.0.1:9092"
   kafka_topic: "TEST-TOPIC"

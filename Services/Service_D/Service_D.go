@@ -391,7 +391,12 @@ func RetrainAndUploadModels(ctx context.Context, app_config *config.App_Config, 
 	// 1. Run the Python retraining script
 	log.Println("Service D: Starting model retraining task...")
 
-	cmd := exec.Command("python", "Services/Service_D/Random_Generated_Models.py")
+	pythonCmd := "python"   // for running python3 in k3 vs my local python for local developement
+	if os.Getenv("RUN_IN_K3S") == "true" {
+		pythonCmd = "python3"
+	}
+
+	cmd := exec.Command(pythonCmd, "Services/Service_D/Random_Generated_Models.py")
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {

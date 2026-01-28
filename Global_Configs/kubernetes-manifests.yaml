@@ -9,7 +9,7 @@ data:
     scrape_configs:
       - job_name: 'ai_infra_services'
         static_configs:
-          - targets: ['host.docker.internal:9091']
+          - targets: ['ai-infra-app:9091']
 
 ---
 apiVersion: v1
@@ -25,6 +25,36 @@ data:
         url: http://prometheus:9090
         access: proxy
         isDefault: true
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  App.yaml: |
+    server:
+      service_a_port: 50051
+      service_b_port: 50052
+      metrics_port: 9091
+
+    workers:
+      max_python_workers: 10
+
+    paths:
+      azure_path: "./Data/Azure"
+      model_cache: "./Data/model_cache"
+      kafka_install_dir: "/tmp/kafka" # Not used in K8s mode, but path required
+
+    drift:
+      threshold: 0.1
+
+    connections:
+      duckdb_path: "./Data/Offline_Store.duckdb"
+      redis_addr: "redis:6379"
+      azure_conn: "UseDevelopmentStorage=true"
+      kafka_addr: "kafka:9092"
+      kafka_topic: "TEST-TOPIC"
 
 ---
 apiVersion: v1
@@ -49,6 +79,18 @@ spec:
   resources:
     requests:
       storage: 1Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
 
 ---
 apiVersion: apps/v1
@@ -84,7 +126,7 @@ kind: Service
 metadata:
   name: redis
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 6379
     targetPort: 6379
@@ -106,11 +148,6 @@ spec:
       labels:
         app: prometheus
     spec:
-      # hostAliases may be needed if you are not using Docker Desktop's built-in DNS for this host
-      # hostAliases:
-      # - ip: "172.17.0.1" # Example host gateway IP
-      #   hostnames:
-      #   - "host.docker.internal"
       containers:
       - name: prometheus
         image: prom/prometheus:latest
@@ -118,7 +155,7 @@ spec:
         - containerPort: 9090
         volumeMounts:
         - name: config-volume
-          mountPath: /etc/prometheus/Prometheus.yml
+          mountPath: /etc/prometheus/prometheus.yml
           subPath: Prometheus.yml
       volumes:
       - name: config-volume
@@ -187,3 +224,71 @@ spec:
     targetPort: 3000
   selector:
     app: grafana
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-infra-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-infra-app
+  template:
+    metadata:
+      labels:
+        app: ai-infra-app
+    spec:
+      imagePullSecrets:
+      - name: ghcr-cred # this points to my k3 secret. it's used to pull the docker images
+      containers:
+      - name: ai-infra-app
+        # Defined in Global_Configs/Image_Names.txt
+        image: ghcr.io/sethmichel/ai-infra-app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 50051
+          name: service-a
+        - containerPort: 50052
+          name: service-b
+        - containerPort: 9091
+          name: metrics
+        env:
+        - name: RUN_IN_K3S
+          value: "true"
+        - name: AZURE_STORAGE_CONNECTION_STRING
+          value: "UseDevelopmentStorage=true"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/Global_Configs/App.yaml
+          subPath: App.yaml
+        - name: app-data
+          mountPath: /app/Data
+      volumes:
+      - name: config-volume
+        configMap:
+          name: app-config
+      - name: app-data
+        persistentVolumeClaim:
+          claimName: app-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-infra-app
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 50051
+    targetPort: 50051
+    name: service-a
+  - port: 50052
+    targetPort: 50052
+    name: service-b
+  - port: 9091
+    targetPort: 9091
+    name: metrics
+  selector:
+    app: ai-infra-app

@@ -130,7 +130,7 @@ func startPythonWorker() (*os.Process, error) {
 
 	// Fallback for local Windows dev if needed
 	// Check for the existence of the venv python executable
-	if _, err := os.Stat("venv/Scripts/python.exe"); err == nil {
+	if _, err := os.Stat("venv/Scripts/python.exe"); err == nil && os.Getenv("RUN_IN_K3S") != "true" {
 		pythonPath = "venv/Scripts/python.exe"
 	}
 
