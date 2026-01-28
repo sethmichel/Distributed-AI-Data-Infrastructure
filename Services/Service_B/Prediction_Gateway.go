@@ -125,8 +125,14 @@ func PromptUserForInputs(reader *bufio.Reader, features []ModelFeature) (map[str
 
 // attempts to locate the python executable and start the model server
 func startPythonWorker() (*os.Process, error) {
-	// use the venv python
-	pythonPath := "venv/Scripts/python.exe"
+	// Check if we are in a container/linux environment
+	pythonPath := "python3"
+
+	// Fallback for local Windows dev if needed
+	// Check for the existence of the venv python executable
+	if _, err := os.Stat("venv/Scripts/python.exe"); err == nil {
+		pythonPath = "venv/Scripts/python.exe"
+	}
 
 	scriptPath := filepath.Join("Services", "Service_B", "model_server.py")
 	log.Printf("Launching Python Worker: %s %s", pythonPath, scriptPath)

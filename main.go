@@ -35,9 +35,9 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	// 4. check/create docker containers for promethious, granfana, redis
-	if err := StartDockerServices(); err != nil {
-		log.Fatalf("Docker services check failed: %v", err)
-	}
+	// if err := StartDockerServices(); err != nil {
+	// 	log.Fatalf("Docker services check failed: %v", err)
+	// }
 
 	// 5. Check/create DuckDB and tables
 	if err := CheckDuckDB(app_config_struct); err != nil {
@@ -85,9 +85,9 @@ func main() {
 	if err := StopKafka(app_config_struct); err != nil {
 		log.Printf("Error stopping Kafka during shutdown: %v", err)
 	}
-	if err := StopDockerServices(); err != nil {
-		log.Printf("Error stopping Docker services during shutdown: %v", err)
-	}
+	// if err := StopDockerServices(); err != nil {
+	// 	log.Printf("Error stopping Docker services during shutdown: %v", err)
+	// }
 
 	log.Println("Shutdown complete.")
 }
