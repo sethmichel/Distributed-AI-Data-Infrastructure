@@ -36,6 +36,10 @@ type App_Config struct {
 		AzureContainerName string `yaml:"azure_container_name"`
 		KafkaAddr          string `yaml:"kafka_addr"`
 		KafkaTopic         string `yaml:"kafka_topic"`
+		PostgresAddr       string `yaml:"postgres_addr"`
+		PostgresUser       string `yaml:"postgres_user"`
+		PostgresPassword   string `yaml:"postgres_password"`
+		PostgresDB         string `yaml:"postgres_db"`
 	} `yaml:"connections"`
 }
 
@@ -65,6 +69,20 @@ func LoadConfig() (*App_Config, error) {
 	}
 	if container := os.Getenv("AZURE_CONTAINER_NAME"); container != "" {
 		app_config_struct.Connections.AzureContainerName = container
+	}
+
+	// Postgres connection from env
+	if host := os.Getenv("POSTGRES_ADDR"); host != "" {
+		app_config_struct.Connections.PostgresAddr = host
+	}
+	if user := os.Getenv("POSTGRES_USER"); user != "" {
+		app_config_struct.Connections.PostgresUser = user
+	}
+	if pass := os.Getenv("POSTGRES_PASSWORD"); pass != "" {
+		app_config_struct.Connections.PostgresPassword = pass
+	}
+	if db := os.Getenv("POSTGRES_DB"); db != "" {
+		app_config_struct.Connections.PostgresDB = db
 	}
 
 	return app_config_struct, nil

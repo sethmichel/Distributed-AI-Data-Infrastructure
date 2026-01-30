@@ -1,0 +1,5 @@
+comment = 'PostgreSQL extension for drift detection using t-digest and Azure Functions'
+default_version = '1.0'
+module_pathname = '$libdir/pg_stat_guard'
+relocatable = true
+# We can add requires = 'http' later if we confirm the extension name

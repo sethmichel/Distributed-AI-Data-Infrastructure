@@ -20,4 +20,8 @@ connections:
   azure_conn: "UseDevelopmentStorage=true"
   kafka_addr: "127.0.0.1:9092"
   kafka_topic: "TEST-TOPIC"
+  postgres_addr: "postgres:5432"
+  postgres_user: "postgres"
+  postgres_password: "" # Set via env var in production
+  postgres_db: "postgres"
 

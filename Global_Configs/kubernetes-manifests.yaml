@@ -55,6 +55,21 @@ data:
       azure_conn: "UseDevelopmentStorage=true"
       kafka_addr: "kafka:9092"
       kafka_topic: "TEST-TOPIC"
+      postgres_addr: "postgres:5432"
+      postgres_user: "postgres"
+      # Password injected via env var
+      postgres_password: "" 
+      postgres_db: "postgres"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+type: Opaque
+stringData:
+  postgres-password: "password" # This is base64 encoded in real k8s but stringData allows plain text in manifest for applying.
+                                # Ideally this should be managed outside of git or via sealed secrets/vault.
 
 ---
 apiVersion: v1
@@ -226,6 +241,65 @@ spec:
     app: grafana
 
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: postgres-password
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: postgres-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: postgres
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -259,6 +333,17 @@ spec:
           value: "true"
         - name: AZURE_STORAGE_CONNECTION_STRING
           value: "UseDevelopmentStorage=true"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: postgres-password
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_DB
+          value: "postgres"
+        - name: POSTGRES_ADDR
+          value: "postgres:5432"
         volumeMounts:
         - name: config-volume
           mountPath: /app/Global_Configs/App.yaml
