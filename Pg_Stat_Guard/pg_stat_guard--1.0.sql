@@ -54,7 +54,7 @@ CREATE AGGREGATE tdigest_agg_parallel (double precision) (
 );
 
 -- Main function to trigger analysis
-CREATE FUNCTION perform_drift_analysis(interval)
+CREATE FUNCTION perform_drift_analysis(interval, text, text)
 RETURNS json
 AS 'MODULE_PATHNAME', 'perform_drift_analysis'
 LANGUAGE C STRICT;

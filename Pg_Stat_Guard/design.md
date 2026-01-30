@@ -8,6 +8,16 @@ This is a c extension whose goal is to do ml model drift detection on data in a 
 - Connection details (host, port, user, pass, db) are defined in `Global_Configs/App.yaml` and loaded via `Config_Loader.go`.
 - The platform connects to this Postgres instance to insert data and trigger drift detection.
 
+**Exactly how it works**
+the c file sends data to the azure url as a bytes payload. the python file does nothing locally, it's the function we run on azure. 
+- pg reads the data
+- the c file compresses the data into a tdigest (this happens 100% in the db, not locally)
+- the c file uses pgsql-http to send this binary tdigest to teh azure url
+- azure runs my python file on the data
+  - the python code deserializes the data back into a tdigest and runs drift detection on it
+- the python file/azure return a json result back to pg (my c code)
+
+
 ## Signal
 - Local system runs something like: `if value > mean + 3*std_dev`
 - If it gets flagged then it does something like: `SELECT perform_drift_analysis(interval '15 minutes');`
@@ -64,6 +74,7 @@ drift_detector/
 # requirments
 - pgsql-http extension installed in my pg server
 
+
 # how to run
 - from the extension dir run
     - make
@@ -71,3 +82,9 @@ drift_detector/
 - enable in the db
     - CREATE extension pg_stat_guard;
 - make sure azure is ready
+
+
+
+### critical
+- you have to save your azure functions url in the postgresql.conf file. the other way would be to call
+sql commands everytime the extension is triggered to move it from a local env file to pg.

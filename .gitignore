@@ -10,6 +10,8 @@ Gobal_Configs/Env/
 Data/Offline_Store.duckdb
 Data/Offline_Store.duckdb.wal
 
+Pg_Stat_Guard/design_2.md
+
 ai_infra_project.exe
 
 backups/
