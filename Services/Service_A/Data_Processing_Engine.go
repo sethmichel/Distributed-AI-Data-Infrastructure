@@ -127,6 +127,10 @@ func StartDataProcessingEngine(redis_conn *redis.Client, app_config_struct *conf
 	// Batch configuration -
 	batchSize := 5
 	flushInterval := 2 * time.Second
+	
+	// Alert configuration
+	lastAlertTime := time.Time{}
+	alertCooldown := 10 * time.Minute
 
 	// batchdata has the data
 	// batchmsgs has the data+metadata+kafka offset we need to commit to kafka
@@ -140,6 +144,39 @@ func StartDataProcessingEngine(redis_conn *redis.Client, app_config_struct *conf
 		}
 
 		ctxInner := context.Background()
+
+		// 0. service c communication - Lightweight Drift Detection Check
+		// Check if we should trigger an alert based on values
+		// Only check if we are outside the cooldown period
+		if time.Since(lastAlertTime) > alertCooldown {
+			triggerAlert := false
+			var alertEntityID string
+
+			for _, data := range batchData {
+				// Simple threshold check: if value is too high (e.g. > 100), trigger investigation
+				// This is a placeholder for "something looks wrong"
+				if data.Value > 100.0 {
+					triggerAlert = true
+					alertEntityID = data.EntityID
+					break
+				}
+			}
+
+			if triggerAlert {
+				// Publish alert to Redis
+				// Use a timeout context for the publish
+				pubCtx, cancel := context.WithTimeout(ctxInner, 2*time.Second)
+				err := redis_conn.Publish(pubCtx, "drift_alerts", alertEntityID).Err()
+				cancel()
+
+				if err != nil {
+					log.Printf("Failed to publish drift alert: %v", err)
+				} else {
+					log.Printf("Drift alert triggered for entity %s. Sent signal to Service C.", alertEntityID)
+					lastAlertTime = time.Now()
+				}
+			}
+		}
 
 		// 1. Send batch to Redis
 		SendBatch_Redis(batchData, redis_conn, ctxInner)

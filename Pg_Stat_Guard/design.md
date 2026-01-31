@@ -16,7 +16,27 @@ the c file sends data to the azure url as a bytes payload. the python file does 
 - azure runs my python file on the data
   - the python code deserializes the data back into a tdigest and runs drift detection on it
 - the python file/azure return a json result back to pg (my c code)
+1. Go App → sends SQL SELECT ... → Postgres
+2. Postgres → loads your C library → calls pg_stat_guard.c
+3. pg_stat_guard.c → runs internal SQL using http_post → pgsql-http extension
+4. pgsql-http → sends HTTP Request → Azure Function
+5. Azure Function → calculates & returns JSON → pgsql-http
+6. pgsql-http → returns JSON to pg_stat_guard.c
+7. pg_stat_guard.c → returns JSON to Postgres
+8. Postgres → returns JSON row to Go App
 
+**how to call it and what it returns**
+- go code (or whatever) connects to postgres (pg) and calls this sql which is the extension function (uses the function defined in pg_stat_guard--1.0.sql), it needs to give the interval, table name, and column value. pg looks for this function and sees it in my extension via the pg_stat_guard--1.0.sql file. it loads the dll or .so library needed and runs the c code inside pg
+      SELECT perform_drift_analysis('1 hour', 'my_table_name', 'my_column_name');
+- the c file gets arguments from the sql command we just called, because the sql command is a function in the c file.
+- the c file returns a json obj back to the sql, so it's what that original sql command results in
+
+**Required**
+- you have to save your azure functions url in the postgresql.conf file. the other way would be to call
+  sql commands everytime the extension is triggered to move it from a local env file to pg.
+- azure functions credentials
+- pgsql-http installed
+    - run this in your db: CREATE EXTENSION http;
 
 ## Signal
 - Local system runs something like: `if value > mean + 3*std_dev`
@@ -84,7 +104,3 @@ drift_detector/
 - make sure azure is ready
 
 
-
-### critical
-- you have to save your azure functions url in the postgresql.conf file. the other way would be to call
-sql commands everytime the extension is triggered to move it from a local env file to pg.

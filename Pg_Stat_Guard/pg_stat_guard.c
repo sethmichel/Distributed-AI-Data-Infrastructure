@@ -232,6 +232,7 @@ perform_drift_analysis(PG_FUNCTION_ARGS)
 {
     Interval *interval = PG_GETARG_INTERVAL_P(0);
 
+    // table and column names come from the sql command that triggers this exension. so the user gives them
     text *table_text = PG_GETARG_TEXT_PP(1);                  // get pg text obj from teh function
     char *table_name = text_to_cstring(table_text);           // convert pg obj to c string
     const char *quoted_table = quote_identifier(table_name);  // pg helper that puts "" around the string
